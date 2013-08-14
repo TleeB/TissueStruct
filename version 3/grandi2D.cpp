@@ -1181,18 +1181,46 @@ int main(){
             tau_j = myCoefTauJ/(alpha_j+beta_j);
             //j = j_inf-(j_inf-j)*exp(-DT/tau_j);
             yhdot[x][5] = (j_inf - yh[x][5])/tau_j;
-
+            //IKr, Xr1 gate/////////////////////////////////////////////////////// 
+            //parameter added for rapid delayed rectifier current
+            xr1_inf = 1/(1+exp((((-R*T/F/Q*log(1/pow(((1+Cao*0.001/Kc)/(1+Cao*0.001/Ka)),4)/L0))-26)-(yh[x][0]-myShift))/7));
+            alpha_xr1 = 450/(1+exp((-45-(yh[x][0]-myShift))/(10)));
+            beta_xr1 = 6/(1+exp(((yh[x][0]-myShift)-(-30))/11.5));
+            tau_xr1 = alpha_xr1*beta_xr1;
+            //xr1 = xr1_inf-(xr1_inf-xr1)*exp(-DT/tau_xr1);
+            yhdot[x][6] = (xr1_inf - yh[x][6])/tau_xr1;
+            //IKr, Xr2 gate////////////////////////////////////////////////////// 
+            xr2_inf = 1/(1+exp(((yh[x][0]-myShift)-(-88))/24));
+            alpha_xr2 = 3/(1+exp((-60-(yh[x][0]-myShift))/20));
+            beta_xr2 = 1.12/(1+exp(((yh[x][0]-myShift)-60)/20));
+            tau_xr2 = alpha_xr2*beta_xr2;
+            //xr2 = xr2_inf-(xr2_inf-xr2)*exp(-DT/tau_xr2);
+            yhdot[x][7] = (xr2_inf - yh[x][7])/tau_xr2;
+            //IKs, Xs gate/////////////////////////////////////////////////////// 
+            xs_inf = 1/(1+exp((-5-yh[x][0])/14));
+            alpha_xs = 1100/(sqrt(1+exp((-10-yh[x][0])/6)));
+            beta_xs = 1/(1+exp((yh[x][0]-60)/20));
+            tau_xs = alpha_xs*beta_xs;
+            //xs = xs_inf-(xs_inf-xs)*exp(-DT/tau_xs);
+            yhdot[x][8] = (xs_inf - yh[x][8])/tau_xs;
+            //Ito, r gate/////////////////////////////////////////////////////// 
+            r_inf = 1/(1+exp((-yh[x][0]+20+myShiftItoR)/(6*mySlopeItoR)));
+            tau_r = myConstTauR*(9.5*exp(-pow((yh[x][0]+40),2)/1800)+0.8);
+            //r = r_inf-(r_inf-r)*exp(-DT/tau_r);
+            yhdot[x][9] = (r_inf - yh[x][9])/tau_r;
+            //Ito, s gate/////////////////////////////////////////////////////// 
+            s_inf = 1/(1+exp((yh[x][0]+20+myShiftItoS)/(5*mySlopeItoS)));
+            tau_s = myConstTauS*(85*exp(-(yh[x][0]+45)*(yh[x][0]+45)/320)+5/(1+exp((yh[x][0]-20)/5))+3);
+            //s = s_inf-(s_inf-s)*exp(-DT/tau_s);
+            yhdot[x][10] = (s_inf - yh[x][10])/tau_s;
             //ICaL, d gate, and Irel d gate//////////////////////////////////////////
             alpha_d = 1.4/(1+exp((-35-yh[x][0])/13))+0.25;
             beta_d = 1.4/(1+exp((yh[x][0]+5)/5));
             gamma_d = 1/(1+exp((50-yh[x][0])/20));
             tau_d = alpha_d*beta_d+gamma_d;
-
             d_inf = 1/(1+exp(-(yh[x][0]-Vh_dCa)/kCa));
-
             //d = d_inf-(d_inf-d)*exp(-DT/tau_d);
             yhdot[x][11]=(d_inf - yh[x][11])/d_inf;
-
             //ICaL, f gate///////////////////////////////////////////////////////////
             f_inf = 1/(1+exp((yh[x][0]+myVhfCaL)/myKfCaL));
             switch(DevelopmentalStage){
@@ -1241,28 +1269,6 @@ int main(){
               //g = g_inf-(g_inf-g)*exp(-DT/tau_g);
               yhdot[x][14]=(g_inf - yh[x][14])/tau_g;
             }
-            //IKs, Xs gate/////////////////////////////////////////////////////// 
-            xs_inf = 1/(1+exp((-5-yh[x][0])/14));
-            alpha_xs = 1100/(sqrt(1+exp((-10-yh[x][0])/6)));
-            beta_xs = 1/(1+exp((yh[x][0]-60)/20));
-            tau_xs = alpha_xs*beta_xs;
-            //xs = xs_inf-(xs_inf-xs)*exp(-DT/tau_xs);
-            yhdot[x][8] = (xs_inf - yh[x][8])/tau_xs;
-            //Ito, r gate/////////////////////////////////////////////////////// 
-            r_inf = 1/(1+exp((-yh[x][0]+20+myShiftItoR)/(6*mySlopeItoR)));
-            tau_r = myConstTauR*(9.5*exp(-pow((yh[x][0]+40),2)/1800)+0.8);
-            //r = r_inf-(r_inf-r)*exp(-DT/tau_r);
-            yhdot[x][9] = (r_inf - yh[x][9])/tau_r;
-            //Ito, s gate/////////////////////////////////////////////////////// 
-            s_inf = 1/(1+exp((yh[x][0]+20+myShiftItoS)/(5*mySlopeItoS)));
-            tau_s = myConstTauS*(85*exp(-(yh[x][0]+45)*(yh[x][0]+45)/320)+5/(1+exp((yh[x][0]-20)/5))+3);
-            //s = s_inf-(s_inf-s)*exp(-DT/tau_s);
-            yhdot[x][10] = (s_inf - yh[x][10])/tau_s;
-            //If, Xf gate////////////////////////////////////////////////////////
-            tau_xf = 1900;//ms
-            xf_inf = 1/(1+exp((yh[x][0]-(-102.4))/(7.6)));
-            //xf = xf_inf-(xf_inf-xf)*exp(-DT/tau_xf);
-            yhdot[x][17] = (xf_inf - yh[x][17])/tau_xf;
             //ICaT, dCaT gate//////////////////////////////////////////////////// 
             dCaT_inf = 1/(1+exp(-(yh[x][0]+26.3)/(6)));
             tau_dCaT = 1/(1.068*exp((yh[x][0]+26.3)/(30))+1.068*exp(-(yh[x][0]+26.3)/(30)));
@@ -1273,10 +1279,17 @@ int main(){
             tau_fCaT = 1/(0.0153*exp(-(yh[x][0]+61.7)/(83.3))+ 0.015*exp((yh[x][0]+61.7)/(15.38)));
             //fCaT = fCaT_inf-(fCaT_inf-fCaT)*exp(-DT/tau_fCaT);
             yhdot[x][16] = (fCaT_inf - yh[x][16])/tau_fCaT;
+            //If, Xf gate////////////////////////////////////////////////////////
+            tau_xf = 1900;//ms
+            xf_inf = 1/(1+exp((yh[x][0]-(-102.4))/(7.6)));
+            //xf = xf_inf-(xf_inf-xf)*exp(-DT/tau_xf);
+            yhdot[x][17] = (xf_inf - yh[x][17])/tau_xf;
             //IK1, alphas and betas////////////////////////////////////////////// 
             alpha_K1 = 0.1/(1+exp(0.06*((yh[x][0]-myShiftK1)-Ek-200)));
             beta_K1 = (3*exp(0.0002*((yh[x][0]-myShiftK1)-Ek+100))+exp(0.1*((yh[x][0]-myShiftK1)-Ek-10)))/(1+exp(-0.5*((yh[x][0]-myShiftK1)-Ek)));
             x_K1_inf = alpha_K1/(alpha_K1+beta_K1);
+
+
 
 
             //Na+ current, INa 
