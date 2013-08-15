@@ -81,7 +81,7 @@ for k=1:nFrames
    %mov(k) = getframe(gca);
    surf(reshape(full_file(k,:), cols,rows)');%,'LineStyle','none');
     shading(gca,'faceted');
-    %view(0, 90)
+    view(0, 90)
     %view(15,30); %this makes the view from the top, if you comment it out you get the 3d plot
     mov(k) = getframe;
 

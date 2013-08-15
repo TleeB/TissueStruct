@@ -13,7 +13,7 @@
 using namespace std;
 int length_myo = 5;
 int length_fib = 1;
-const int NROWS = 25, NCOLS = 25;
+const int NROWS = 10, NCOLS = 10;
 int grid[NROWS][NCOLS]={0};
 
 

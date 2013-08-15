@@ -23,17 +23,17 @@ using namespace std;
 const double epi = 0;//Cell type of model is originally endo
 const double HF = 0; //To simulate the heart failure model use HF=1
 const bool DynamicGapON = false;
-char DevelopmentalStage = 'e';//e - early, l - late
-char nonmyocyte = 'h';// h - hesc, f - fibroblast
+char DevelopmentalStage = 'l';//e - early, l - late
+char nonmyocyte = 'f';// h - hesc, f - fibroblast
 
 
 //Global stimulation parameters
 int num_stim=5;
-int stim_equil = 1;
+int stim_equil = 0;
 int file_filter = 1000;
 double stim_mag=19.5;
 double stim_dur=3;
-int stim_col_max=4, stim_row_max=4;
+int stim_col_max=2, stim_row_max=2;
 double bcl=500;
 double DT = 0.005;
 char output_file_name[30] = "testGrandi.dat";
@@ -487,7 +487,7 @@ int main(){
   double kon_csqn = 100;         // [1/mM/ms]
 
   //Some commented code on membrane currents emitted
-  /*
+  
   //Gating variables
   //I_Na: Fast Na Current
   double mss, taum, ah, bh, tauh, hss, aj, bj, tauj, jss;
@@ -514,18 +514,7 @@ int main(){
   double J_CaB_junction, J_CaB_sl;
   double I_Na_tot_junc, I_Na_tot_sl, I_Na_tot_sl2, I_Na_tot_junc2;
   double I_K_tot, I_Ca_tot_junc, I_Ca_tot_sl, I_to;
-  */
-  // double y[CELLS_myo][41], ydot[CELLS_myo][41];
-  // double yf[CELLS_fib][3], yfdot[CELLS_fib][3];
-  vector< vector< double > > y(CELLS_myo, vector< double >( 41 ) );
-  vector< vector< double > > ydot(CELLS_myo, vector< double >( 41 ) );
-  vector< vector< double > > yf(CELLS_fib, vector< double >( 3 ) );
-  vector< vector< double > > yfdot(CELLS_fib, vector< double >( 3 ) );
-  vector< vector< double > > yh(CELLS_fib, vector< double >( 18 ) );
-  vector< vector< double > > yhdot(CELLS_fib, vector< double >( 18 ) );
-  //  cout << "vectors loaded"<<endl;
-
-
+  
 
 
   //hESCM parameters
@@ -688,12 +677,23 @@ int main(){
   double Nai_fib  = 8.0; //CellML from Dr. Fink
   double ENa_fib = 70.0; //millivolts
   double EK_fib = -87.0; //millivolts
+            double s_inf_fib, tau_s_fib;
+            double r_inf_fib, tau_r_fib;
+            double alpha_K1_fib, beta_K1_fib;
+            double IK1_fib, IKv_fib, INaK_fib, IbNa_fib, Itotal_fib, I_stim_fib;
 
-  double s_inf_fib, tau_s_fib;
-  double r_inf_fib, tau_r_fib;
-  double alpha_K1_fib, beta_K1_fib;
-  double IK1_fib, IKv_fib, INaK_fib, IbNa_fib, Itotal_fib, I_stim_fib;
   //----------------------------------------------------------------------------------------------------
+  // double y[CELLS_myo][41], ydot[CELLS_myo][41];
+  // double yf[CELLS_fib][3], yfdot[CELLS_fib][3];
+  vector< vector< double > > y(CELLS_myo, vector< double >( 41 ) );
+  vector< vector< double > > ydot(CELLS_myo, vector< double >( 41 ) );
+  vector< vector< double > > yf(CELLS_fib, vector< double >( 3 ) );
+  vector< vector< double > > yfdot(CELLS_fib, vector< double >( 3 ) );
+  vector< vector< double > > yh(CELLS_fib, vector< double >( 18 ) );
+  vector< vector< double > > yhdot(CELLS_fib, vector< double >( 18 ) );
+  //  cout << "vectors loaded"<<endl;
+
+
 
   //Initialize myocyte variables
   for (int node = 0; node<CELLS_myo; node++){
@@ -744,24 +744,24 @@ int main(){
     case 'h':
       //Initialize hESC variables
       for (int node = 0; node<CELLS_fib; node++){
-        yh[node][0]= -0.069160;//V
-        yh[node][1]= 0.000027;//Cai
-        yh[node][2]= 0.086301;//CaSR
-        yh[node][3]= 0.041569;//m
-        yh[node][4]= 0.600505;//h
-        yh[node][5]= 0.618972;//j
-        yh[node][6]= 0.001208;//xr1
-        yh[node][7]= 0.313321;//xr2
-        yh[node][8]= 0.010087;//xs
-        yh[node][9]= 0.000000;//r
-        yh[node][10]= 0.999948;//s
-        yh[node][11]= 0.001452;//d
-        yh[node][12]= 0.999173;//f
-        yh[node][13]= 1.002065;//f_ca
-        yh[node][14]= 1.000000;//g
-        yh[node][15]= 0.000789;//dCaT
-        yh[node][16]= 0.797842;//fCat
-        yh[node][17]= 0.014191;//xf
+        yh[node][0]= -70;//V
+        yh[node][1]= 0.0002;//Cai
+        yh[node][2]=  0.2;//CaSR
+        yh[node][3]= 0.;//m
+        yh[node][4]= 0.75;//h
+        yh[node][5]= 0.75;//j
+        yh[node][6]= 0.;//xr1
+        yh[node][7]= 1.;//xr2
+        yh[node][8]= 0.;//xs
+        yh[node][9]= 0.;//r
+        yh[node][10]= 1.;//s
+        yh[node][11]= 0.;//d
+        yh[node][12]= 1.;//f
+        yh[node][13]= 1.;//f_ca
+        yh[node][14]= 1.;//g
+        yh[node][15]= 0.;//dCaT
+        yh[node][16]= 1.;//fCat
+        yh[node][17]= 0.1;//xf
       }
       break;
     case 'f':
@@ -797,32 +797,7 @@ int main(){
 
       //Start of the myocyte dimensions
       for (int x = 0; x<CELLS_myo; x++){
-        //Gating variables
-        //I_Na: Fast Na Current
-        double mss, taum, ah, bh, tauh, hss, aj, bj, tauj, jss;
-        double aml, bml, mlss, tauml, hlss, tauhl;
-        double sigma, fnak;
-        double xrss, tauxr, rkr, xsss, tauxs, xtoss, tauxtof, ytoss, tauytof;
-        double xkurss, tauxkur, ykurss, tauykur, aki, bki;
-        double dss, taud, fss, tauf;
-        double I_Na_junc, I_Na_sl, I_Na, I_NaL_junc, I_NaL_sl, I_NaL, I_nabk_junc, I_nabk_sl, I_nabk;
-        double I_nak_junc, I_nak_sl, I_nak;
-        double I_kr, I_ks, I_kp, I_kur, I_ki;
-        double I_ClCa_junc, I_ClCa_sl, I_ClCa, I_Clbk;
-        double ibarca_j, ibarca_sl, ibark, ibarna_j, ibarna_sl, I_Ca_junc, I_Ca_sl, I_Ca, CaSR;
-        double I_CaK, I_CaNa_junc, I_CaNa_sl, I_CaNa, I_Catot;
-        //Added variables
-        double kiSRCa, koSRCa, MinSR, MaxSR, fcaCaj, fcaCaMSL, kiss, GtoFast, GtoSlow, I_tos;
-        double I_tof, tauytos, tauxtos, I_kp_sl, I_kp_junc, kp_kp, I_ks_sl,eks, I_ks_junc, gks_sl, gks_junc, gkr;
 
-        double Ka_junc, Ka_sl, s1_junc, s1_sl, s2_junc, s2_sl, s3_junc, s3_sl, I_ncx_junc, I_ncx_sl, I_ncx;
-        double I_pca_junc, I_pca_sl, I_pca;
-        double I_cabk_junc, I_cabk_sl, I_cabk;
-        double I_Na_tot, I_Cl_tot, I_Ca_tot, I_tot, I_stim;
-        double kCaSR, RI, J_SRCarel, J_serca, J_SRleak, J_CaB_cytosol;
-        double J_CaB_junction, J_CaB_sl;
-        double I_Na_tot_junc, I_Na_tot_sl, I_Na_tot_sl2, I_Na_tot_junc2;
-        double I_K_tot, I_Ca_tot_junc, I_Ca_tot_sl, I_to;
 
         //Nerst potential without time dependence
         ecl = (1/FoRT)*log(Cli/Clo);            // [mV]
@@ -1335,10 +1310,18 @@ int main(){
             //T-type Ca2+ Current, ICaT, not originally in the tentusscher model 
             ICaT = yh[x][15]*yh[x][16]*GICaT*(yh[x][0]-Eca);
 
+            // Current injection
+            if ( (( count <= stim_dur_int)&& (stim_fib[x] == 1))&& (num> stim_equil)) {
+              Istim = -stim_mag;
+            }
+            else {
+              Istim = 0.0;
+
+            }
 
             //dvdtold = dvdt;
 
-            Itotal = INa + ICaL + Ito + IKr + IKs + IK1 + INaCa + INaK + IpCa + IbNa + IpK + IbCa + If + ICaT + I_stim_fib;
+            Itotal = INa + ICaL + Ito + IKr + IKs + IK1 + INaCa + INaK + IpCa + IbNa + IpK + IbCa + If + ICaT + Istim;
 
             Ileak = Vleak*(yh[x][2]-yh[x][1]);
             Iup = Vmaxup/(1.+((Kup*Kup)/(yh[x][1]*yh[x][1])));
@@ -1355,24 +1338,15 @@ int main(){
 
             //dCaSR = DT*(Vc/Vsr)*CaSRCurrent;
             yhdot[x][2] = (Vc/Vsr_hesc)*CaSRCurrent;
-            bjsr = Bufsr-CaCSQN-dCaSR-yh[x][2]+Kbufsr;
-            cjsr = Kbufsr*(CaCSQN+dCaSR+yh[x][2]);
+            bjsr = Bufsr-CaCSQN-yhdot[x][2]-yh[x][2]+Kbufsr;
+            cjsr = Kbufsr*(CaCSQN+yhdot[x][2]+yh[x][2]);
             yh[x][2] = (sqrt(bjsr*bjsr+4*cjsr)-bjsr)/2;
 
             //dCai = DT*(CaCurrent-CaSRCurrent);
             yhdot[x][1] = (CaCurrent-CaSRCurrent);
-            bc = Bufc-CaBuf-dCai-yh[x][1]+Kbufc;
-            cc = Kbufc*(CaBuf+dCai+yh[x][1]);
+            bc = Bufc-CaBuf-yhdot[x][1]-yh[x][1]+Kbufc;
+            cc = Kbufc*(CaBuf+yhdot[x][1]+yh[x][1]);
             yh[x][1] = (sqrt(bc*bc+4*cc)-bc)/2;
-
-            // Current injection
-            if ( (( count <= stim_dur_int)&& (stim_fib[x] == 1))&& (num> stim_equil)) {
-              I_stim_fib = -stim_mag;
-            }
-            else {
-              I_stim_fib = 0.0;
-
-            }
 
 
             yhdot[x][0] = -Itotal;
@@ -1399,6 +1373,16 @@ int main(){
 
             IbNa_fib = GbNa_fib * (yf[x][0] - ENa_fib);
 
+                        // Current injection
+            if ( (( count <= stim_dur_int)&& (stim_fib[x] == 1))&& (num> stim_equil)) {
+              I_stim_fib = -stim_mag;
+            }
+            else {
+              I_stim_fib = 0.0;
+
+            }
+
+
             Itotal_fib = IKv_fib + IK1_fib + INaK_fib + IbNa_fib + I_stim_fib;
 
 
@@ -1413,14 +1397,6 @@ int main(){
             //s_gate_fib = s_inf_fib - (s_inf_fib - s) * exp(-DT / tau_s_fib);
             yfdot[x][2] = (s_inf_fib - yf[x][2])/tau_s_fib;
 
-            // Current injection
-            if ( (( count <= stim_dur_int)&& (stim_fib[x] == 1))&& (num> stim_equil)) {
-              I_stim_fib = -stim_mag;
-            }
-            else {
-              I_stim_fib = 0.0;
-
-            }
 
             yfdot[x][0] = (-Itotal_fib);
 
@@ -1494,7 +1470,7 @@ int main(){
           else{ //If neighbor is a fibroblast
             //G = 8e-3;
             Vj = (Vfib[ abs(neighbor[p][N])-1][0] - Vmyo[p][0]);//Neighbor minus 1 to get the right vector index?
-            G = 8e-8;
+            G = 8e-3;
             if(dynamicGapOn){ G = G * dyngap(Vj, CX43CX45);}//This is a Cx43Cx45 channel
           }
           sum_myo += G * Vj;//current in units of uA.
@@ -1503,12 +1479,12 @@ int main(){
           //G = 8e-3; //Units converted to nS for fibroblast model
           if(neighbor[p][N] > 0){ //If neighbor is a myocyte
             Vj = (Vmyo[ abs(neighbor[p][N])-1][0] - Vfib[p][0]);//Neighbor minus 1 to get the right vector index?
-            G = 8e-8; 
+            G = 8e-3; 
             if(dynamicGapOn){G = G * dyngap(-Vj, CX43CX45);}//This is a Cx45Cx43 channel so just switch sign of Vj in the Cx43Cx45 model
           }
           else{//If neighbor is fibroblast
             Vj = (Vfib[ abs(neighbor[p][N])-1][0] - Vfib[p][0]);//Neighbor minus 1 to get the right vector index?
-            G = 8e-8;
+            G = 8e-3;
             if(dynamicGapOn){G = G * dyngap(Vj, CX45CX45);}//This is a Cx45Cx45 channel
           }
           sum_fib += G * Vj;//current in units of pA
