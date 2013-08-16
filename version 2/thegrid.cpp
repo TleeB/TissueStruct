@@ -13,26 +13,28 @@
 using namespace std;
 int length_myo = 5;
 int length_fib = 1;
-const int NROWS = 10, NCOLS = 10;
+const int NROWS = 25, NCOLS = 25;
 int grid[NROWS][NCOLS]={0};
-
+bool grid_toggle = true;
 
 int main(){//Forgot the double parenthesis
   FILE *grid_file;
   FILE *neighbors_myo_file;
   FILE *neighbors_fib_file;
- // FILE *stim_myo_file;
- // FILE *stim_fib_file;
+  // FILE *stim_myo_file;
+  // FILE *stim_fib_file;
 
   grid_file = fopen("grid_file.dat", "w");
   neighbors_myo_file = fopen("neighbors_myo_file.dat","w");
   neighbors_fib_file= fopen("neighbors_fib_file.dat", "w");
-//  stim_myo_file = fopen("stim_myo_file.dat","w");
-//  stim_fib_file = fopen("stim_fib_file.dat","w");
+  //  stim_myo_file = fopen("stim_myo_file.dat","w");
+  //  stim_fib_file = fopen("stim_fib_file.dat","w");
 
   //Define boost library random number generator
   typedef boost::mt19937 RNGType;
-  static RNGType rng(static_cast<unsigned int>(std::time(0)));
+  //static RNGType rng(static_cast<unsigned int>(std::time(0)));
+  static RNGType rng(static_cast<unsigned int>(0));
+
 
   //Initialize myocyte counter
   int myo_count = 0;
@@ -99,19 +101,19 @@ int main(){//Forgot the double parenthesis
   fclose(grid_file);
 
 
-/*
+  /*
   //Write stim_fib_array to file
   for (int bb = 0; bb < stim_myo_index; bb++){
-    fprintf(stim_myo_file, "%d ", stim_myo_array[bb]);
+  fprintf(stim_myo_file, "%d ", stim_myo_array[bb]);
   }
   fclose(stim_myo_file);
 
   //Write stim_fib_array to file
   for (int bb = 0; bb < stim_fib_index; bb++){
-    fprintf(stim_fib_file, "%d ", stim_fib_array[bb]);
+  fprintf(stim_fib_file, "%d ", stim_fib_array[bb]);
   }
   fclose(stim_fib_file);
-*/
+  */
 
   //Determine neighbors and store into vector V
   // vector < vector<int> > V;
@@ -132,41 +134,43 @@ int main(){//Forgot the double parenthesis
         cell_length = length_myo;
       }
       if ((c-1) < 0){
-        neighbor.push_back(grid[r][c]);
+        neighbor.push_back(grid[r][c+cell_length]);//changed from c to c+1
       }
       else{
         neighbor.push_back(grid[r][c-1]);
       }
-      if ( (r-1) < 0){
-        for (int i = 0; i < cell_length; i++){
-          if ((c+i) < NCOLS){
-            neighbor.push_back(grid[r][c+i]);
+      if (grid_toggle == true){
+        if ( (r-1) < 0){
+          for (int i = 0; i < cell_length; i++){
+            if ((c+i) < NCOLS){
+              neighbor.push_back(grid[r+1][c+i]);//changed r to r-1, If at the top, write bottom neighbor twice
+            }
           }
         }
-      }
-      else{
-        for (int i = 0; i < cell_length; i++){
-          if ((c+i) < NCOLS){
-            neighbor.push_back(grid[r-1][c+i]);
+        else{
+          for (int i = 0; i < cell_length; i++){
+            if ((c+i) < NCOLS){
+              neighbor.push_back(grid[r-1][c+i]);
+            }
           }
         }
-      }
-      if ((r+1) > NROWS-1){
-        for (int i = 0; i < cell_length; i++){
-          if ((c+i) < NCOLS){
-            neighbor.push_back(grid[r][c+i]);
+        if ((r+1) > NROWS-1){
+          for (int i = 0; i < cell_length; i++){
+            if ((c+i) < NCOLS){
+              neighbor.push_back(grid[r-1][c+i]);//changed r to r-1, If at the bottom, write above row twice
+            }
           }
         }
-      }
-      else{
-        for (int i = 0; i < cell_length; i++){
-          if ((c+i) < NCOLS){
-            neighbor.push_back(grid[r + 1][c+i]);
+        else{
+          for (int i = 0; i < cell_length; i++){
+            if ((c+i) < NCOLS){
+              neighbor.push_back(grid[r + 1][c+i]);
+            }
           }
         }
       }
       if ((c+length_myo) > NCOLS-1){//Cell is partially truncated or at the edge
-        neighbor.push_back(grid[r][c]);
+        neighbor.push_back(grid[r][c-((NCOLS-1)-c)]);
       }
       else{
         neighbor.push_back(grid[r][c+cell_length]);

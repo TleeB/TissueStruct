@@ -19,6 +19,8 @@
 #include <time.h>
 using namespace std;
 
+
+
 //Model characteristics
 const double epi = 0;//Cell type of model is originally endo
 const double HF = 0; //To simulate the heart failure model use HF=1
@@ -26,8 +28,8 @@ const bool DynamicGapON = false;
 const char DevelopmentalStage = 'l';
 
 //Global stimulation parameters
-int num_stim=20;
-int stim_equil = 2;
+int num_stim=5;
+int stim_equil = 1;
 int file_filter = 1000;
 double stim_mag=19.5;
 double stim_dur=3;
@@ -117,6 +119,8 @@ enum cx_model{
 //Function for dynamic gap junctions
 double dyngap(double, cx_model);
 
+//Function prototypes
+void calcAPD(double [], double []);
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 int main(){
@@ -278,6 +282,8 @@ int main(){
   vector <vector<int> > neighbors_fib = fileToVector(neighbors_fib_file);
   //////////////////////////////////////////////////////////////////////////////////////////
   vector <vector<int> > thegrid = fileToVector(grid_file);
+  const int NCOLS = thegrid.size();
+  const int NROWS = thegrid[0].size();
   const int stim_length = thegrid.size()*thegrid[0].size();
   int stim_myo[stim_length];
   int stim_fib[stim_length];//split into stim myo and stim fib array  
@@ -311,6 +317,20 @@ int main(){
       prev = curr;
     }
   }
+  const int CVL_cell1 = floor(NCOLS/4);
+  const int CVL_cell2 = floor((NCOLS/4)*3);
+  const int CVT_cell1 = floor(NROWS/4);
+  const int CVT_cell2 = floor((NROWS/4)*3);
+  double CVstart;
+
+
+  const int CVL_1 = thegrid[floor(NROWS/2)][CVL_cell1];
+  const int CVL_2 = thegrid[floor(NROWS/2)][CVL_cell2];
+  const int CVT_1 = thegrid[CVT_cell1][floor(NROWS/2)];
+  const int CVT_2 = thegrid[CVT_cell2][floor(NROWS/2)];
+
+  cout <<"Longitudinal cells: "<< CVL_1 << " & " << CVL_2<<endl;
+  cout <<"Transverse cells: "<< CVT_1 << " & " << CVT_2 <<endl;
 
   ///////////////////////////////////////////////////////////////
   //Number of myocyte cells and fibroblast cells
@@ -324,6 +344,17 @@ int main(){
   }
   cout << "Fibroblasts: " << CELLS_fib << endl;
   cout << "Myocytes: " << CELLS_myo << endl;
+
+  //Variables to measure AP parameters
+  double V_myo[CELLS_myo];
+  double V_fib[CELLS_fib];
+  double Vrest[CELLS_myo];
+  double apd90[CELLS_myo];
+  double dvdtmax[CELLS_myo];
+  double apd_start[CELLS_myo];
+  double apd90_t1[CELLS_myo], apd90_t2[CELLS_myo];
+  double upstroke90[CELLS_myo], downstroke[CELLS_myo];
+
 
 
   //Constants
@@ -648,6 +679,14 @@ int main(){
 
   //Initialize myocyte variables
   for (int node = 0; node<CELLS_myo; node++){
+    V_myo[node] = -8.1386313e+1;//previous myo voltage
+    Vrest[node] = 0;
+    upstroke90[node]=0;
+    downstroke90[node]=0;
+    apd90_start[node]=-1;
+    apd90_t1[node]=0;
+    apd90_t2[node]=0;
+    apd90[node]=0;
     y[node][0]=-8.1386313e+1;//Duplicate of membrane potential
     y[node][1]=3.8467219e-3;//m
     y[node][2]=6.2384201e-1;//h
@@ -693,6 +732,7 @@ int main(){
   }
   //Initialize hESC variables
   for (int node = 0; node<CELLS_fib; node++){
+    V_fib[node] = -70;
     yh[node][0]= -70;//V
     yh[node][1]= 0.0002;//Cai
     yh[node][2]=  0.2;//CaSR
@@ -1226,7 +1266,7 @@ int main(){
         // Current injection
         if ( (( count <= stim_dur_int)&& (stim_fib[x] == 1))&& (num> stim_equil)) {
           Istim = -stim_mag;
-       //   cout <<"Stimulate hESC"<<endl;
+          //   cout <<"Stimulate hESC"<<endl;
         }
         else {
           Istim = 0.0;
@@ -1269,7 +1309,7 @@ int main(){
 
 
         //Update membrane potential and gates
-       // for (int cc=0; cc<18; cc++) yh[x][cc] = yh[x][cc] + DT * yhdot[x][cc];
+        // for (int cc=0; cc<18; cc++) yh[x][cc] = yh[x][cc] + DT * yhdot[x][cc];
 
         if(count%file_filter==0) fprintf(output2,"%.12f\t",yh[x][0]);
 
@@ -1286,6 +1326,25 @@ int main(){
       //cout << "I out function: " << ydot[0][0] << endl;
       //cout<<"first pde"<<endl;
       PDE(y, yh, neighbors_fib, DynamicGapON);
+      if (y[CVL_1][0] >= -40 &&  V_myo[CVL_1]<-40) CVstart = time;
+      if (y[CVL_2][0] >= -40 &&  V_myo[CVL_2]<-40){
+        cout <<"Longitudinal CV = " <<((CVL_cell2 - CVL_cell1)* 25e-4)/(time - CVstart)*1000 << endl;
+
+      }
+
+      if (y[CVT_1][0] >= -40 &&  V_myo[CVT_1]<-40) CVstart = time;
+      if (y[CVT_2][0] >= -40 &&  V_myo[CVT_2]<-40){
+        cout <<"Longitudinal CV = " <<((CVT_cell2 - CVT_cell1)* 25e-4)/(time - CVstart)*1000 << endl;
+
+      }
+
+      for (int aa=0; aa<CELLS_myo; aa++) {
+        V_myo[aa] = y[aa][0];
+      }
+
+      for (int dd=0; dd<CELLS_fib; dd++) {
+        V_fib[dd] = yh[dd][0];
+      }
 
     } //end of bcl loop
 
@@ -1300,7 +1359,7 @@ int main(){
   // fclose(output3);
   // fclose(output4);
   t2=clock();
-  cout <<"Runtime: "<< ((float)t2-(float)t1)/(CLOCKS_PER_SEC*60) <<endl;
+  cout <<"Runtime: "<< ((float)t2-(float)t1)/(CLOCKS_PER_SEC*60) << " min(s)" <<endl;
   return 0;
   }
   void PDE( vector< vector<double> >  &Vmyo, vector< vector<double> > &Vfib, vector< vector<int> >  neighbor, bool dynamicGapOn ){//& pass by reference changes the original parameter
@@ -1347,10 +1406,10 @@ int main(){
         }
       }
       if(neighbor[p][0] > 0){
-        temp[p][0] +=  sum_myo* (1./125);//125 pF myocyte converted to uF //Still unsure if I should be multiplying by DT
+        temp[p][0] +=  sum_myo * (1./125);//125 pF myocyte converted to uF //Still unsure if I should be multiplying by DT
       }
       else{
-        temp2[p][0] += sum_fib* (1./25);//25 pF fibroblast 
+        temp2[p][0] += sum_fib * (1./25);//25 pF fibroblast 
       }
     }
     Vmyo = temp;
@@ -1417,3 +1476,15 @@ int main(){
     return (g_res + ((g_max - g_res)/(1 + exp(A1 * (-VJ - V1)) + exp(A2 * (VJ - V2)))));//Contingent gating model
 
   } 
+  void calcAPD( double time, double voltage ){
+	if ( APD90_start == -1 && voltage > upstroke90 ){	
+		APD90_t1 = time;
+		APD90_start = 0;
+	}
+	if ( APD90_start == 0 && voltage < downstroke90 ){
+		APD90_t2 = time;
+		APD90_start = 1;
+		APD90 = APD90_t2 - APD90_t1;
+	}
+}
+

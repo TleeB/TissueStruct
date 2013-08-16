@@ -24,7 +24,7 @@ const double epi = 0;//Cell type of model is originally endo
 const double HF = 0; //To simulate the heart failure model use HF=1
 const bool DynamicGapON = false;
 char DevelopmentalStage = 'l';//e - early, l - late
-char nonmyocyte = 'f';// h - hesc, f - fibroblast
+char nonmyocyte = 'h';// h - hesc, f - fibroblast
 
 
 //Global stimulation parameters
@@ -374,9 +374,9 @@ int main(){
   //Fixed ion concentrations
   double Cli = 15;   // Intracellular Cl  [mM]
   double Clo = 150;  // Extracellular Cl  [mM]
-  double Ko = 4;//5.4;   // Extracellular K   [mM]
-  double Nao = 150.5;//140;  // Extracellular Na  [mM]
-  double Cao = 2.7;//1.8;  // Extracellular Ca  [mM]
+  double Ko = 5.4;   // Extracellular K   [mM]
+  double Nao = 140;  // Extracellular Na  [mM]
+  double Cao = 1.8;  // Extracellular Ca  [mM]
   double Mgi = 1;    // Intracellular Mg  [mM]  <------------------??
 
   //Nerst potential (non changing)
@@ -487,7 +487,7 @@ int main(){
   double kon_csqn = 100;         // [1/mM/ms]
 
   //Some commented code on membrane currents emitted
-  
+
   //Gating variables
   //I_Na: Fast Na Current
   double mss, taum, ah, bh, tauh, hss, aj, bj, tauj, jss;
@@ -514,7 +514,7 @@ int main(){
   double J_CaB_junction, J_CaB_sl;
   double I_Na_tot_junc, I_Na_tot_sl, I_Na_tot_sl2, I_Na_tot_junc2;
   double I_K_tot, I_Ca_tot_junc, I_Ca_tot_sl, I_to;
-  
+
 
 
   //hESCM parameters
@@ -643,7 +643,7 @@ int main(){
   //// Iup
   double Vmaxup=0.000425*RaIup; //[mM/ms]   // 0.000425;   // [mM/ms] maximal Iup
   double Kup=0.00025;//0.00025;    // [mM] half saturation constant
-  /*
+
   //Gating parameters
   double alpha_K1, beta_K1, x_K1_inf;
   double alpha_m, beta_m, tau_m, m_inf, alpha_h, beta_h, tau_h, h_inf, alpha_j, beta_j, tau_j, j_inf;
@@ -652,11 +652,11 @@ int main(){
   double alpha_xr1, beta_xr1, xr1_inf, tau_xr1, alpha_xr2, beta_xr2, xr2_inf, tau_xr2, xf_inf, tau_xf;
   double dCaT_inf, tau_dCaT, fCaT_inf, tau_fCaT;
   double INa, ICaL, Ito, IKr, IKs, IK1, INaCa, INaK, IpCa, IpK, IbNa, IbCa, Istim,If,ICaT, Itotal;
-  double Ileak, Iup, Irel, CaBuf, CaCSQN, CaCurrent, CaSRCurrent, dCaSR, bjsr, cjsr, dCai, bc, cc;
+  double Ileak, Iup, Irel, CaBuf, CaCSQN, CaCurrent, CaSRCurrent, bjsr, cjsr, bc, cc;
 
   //Nerst potentials
   double RTONF, Ek, Ena, Eks, Eca, Ef;
-  */
+
 
   //Fibroblast parameters
   //---------------------------------------------------------------------------------------------------
@@ -677,16 +677,16 @@ int main(){
   double Nai_fib  = 8.0; //CellML from Dr. Fink
   double ENa_fib = 70.0; //millivolts
   double EK_fib = -87.0; //millivolts
-            double s_inf_fib, tau_s_fib;
-            double r_inf_fib, tau_r_fib;
-            double alpha_K1_fib, beta_K1_fib;
-            double IK1_fib, IKv_fib, INaK_fib, IbNa_fib, Itotal_fib, I_stim_fib;
+  double s_inf_fib, tau_s_fib;
+  double r_inf_fib, tau_r_fib;
+  double alpha_K1_fib, beta_K1_fib;
+  double IK1_fib, IKv_fib, INaK_fib, IbNa_fib, Itotal_fib, I_stim_fib;
 
   //----------------------------------------------------------------------------------------------------
   // double y[CELLS_myo][41], ydot[CELLS_myo][41];
   // double yf[CELLS_fib][3], yfdot[CELLS_fib][3];
-  vector< vector< double > > y(CELLS_myo, vector< double >( 41 ) );
-  vector< vector< double > > ydot(CELLS_myo, vector< double >( 41 ) );
+  vector< vector< double > > y(CELLS_myo, vector< double >( 42 ) );
+  vector< vector< double > > ydot(CELLS_myo, vector< double >( 42 ) );
   vector< vector< double > > yf(CELLS_fib, vector< double >( 3 ) );
   vector< vector< double > > yfdot(CELLS_fib, vector< double >( 3 ) );
   vector< vector< double > > yh(CELLS_fib, vector< double >( 18 ) );
@@ -1092,19 +1092,6 @@ int main(){
           //Start of the hESCM dimensions
           ///////////////////////////////////////////////////////////////////////////////////////////
           for (int x = 0; x<CELLS_fib; x++){
-            //Gating parameters
-            double alpha_K1, beta_K1, x_K1_inf;
-            double alpha_m, beta_m, tau_m, m_inf, alpha_h, beta_h, tau_h, h_inf, alpha_j, beta_j, tau_j, j_inf;
-            double alpha_d, beta_d, gamma_d, tau_d, d_inf, f_inf, tau_f, g_inf, tau_g, constg;
-            double f_ca_inf, tau_f_ca, constf_ca, r_inf, tau_r, s_inf, tau_s, alpha_xs, beta_xs, xs_inf, tau_xs;
-            double alpha_xr1, beta_xr1, xr1_inf, tau_xr1, alpha_xr2, beta_xr2, xr2_inf, tau_xr2, xf_inf, tau_xf;
-            double dCaT_inf, tau_dCaT, fCaT_inf, tau_fCaT;
-            double INa, ICaL, Ito, IKr, IKs, IK1, INaCa, INaK, IpCa, IpK, IbNa, IbCa, Istim,If,ICaT, Itotal;
-            double Ileak, Iup, Irel, CaBuf, CaCSQN, CaCurrent, CaSRCurrent, dCaSR, bjsr, cjsr, dCai, bc, cc;
-
-            //Nerst potentials
-            double RTONF, Ek, Ena, Eks, Eca, Ef;
-
             //Reversal potentials
             Eca = 0.5*(R*T/F)*log(Cao/yh[x][1]);
             Ek = (R*T/F)*log(Ko/Ki);
@@ -1115,8 +1102,8 @@ int main(){
             beta_m = 0.1/(1+exp((yh[x][0]+35)/5))+0.1/(1+exp((yh[x][0]-50)/200));
             tau_m = alpha_m*beta_m;
             m_inf = 1/((1+exp((-56.86-yh[x][0])/9.03))*(1+exp((-56.86-yh[x][0])/9.03)));
-            //m = m_inf-(m_inf-m)*exp(-DT/(tau_m));
-            yhdot[x][3] = (m_inf - yh[x][3])/tau_m;
+            yh[x][3] = m_inf-(m_inf-yh[x][3])*exp(-DT/(tau_m));
+            //yhdot[x][3] = (m_inf - yh[x][3])/tau_m;
             //INa, h gate /////////////////////////////////////////////////////////////
             switch(DevelopmentalStage){
               case 'e': h_inf = pow((1/(1+exp((yh[x][0]-Vh_h)/k_h))),0.5);//yh[x][0]h_h = -73, k_h = 5.6
@@ -1134,8 +1121,8 @@ int main(){
               beta_h = ((0.77/(0.13*(1+exp(-(yh[x][0]+10.66)/11.1)))));
             }
             tau_h = myCoefTauH/(alpha_h+beta_h);//myCoefTauH = 2.8
-            //h = h_inf-(h_inf-h)*exp(-DT/(tau_h));
-            yhdot[x][4] = (h_inf - yh[x][4])/tau_h;
+            yh[x][4] = h_inf-(h_inf-yh[x][4])*exp(-DT/(tau_h));
+            //yhdot[x][4] = (h_inf - yh[x][4])/tau_h;
             //INa j gate///////////////////////////////////////////////////////////////
             //j_inf varies depending on the  cell type////////////////////////////////
             switch(DevelopmentalStage){
@@ -1154,48 +1141,48 @@ int main(){
               beta_j = ((0.6*exp((0.057)*yh[x][0])/(1+exp(-0.1*(yh[x][0]+32)))));
             }
             tau_j = myCoefTauJ/(alpha_j+beta_j);
-            //j = j_inf-(j_inf-j)*exp(-DT/tau_j);
-            yhdot[x][5] = (j_inf - yh[x][5])/tau_j;
+            yh[x][5] = j_inf-(j_inf-yh[x][5])*exp(-DT/tau_j);
+            //yhdot[x][5] = (j_inf - yh[x][5])/tau_j;
             //IKr, Xr1 gate/////////////////////////////////////////////////////// 
             //parameter added for rapid delayed rectifier current
             xr1_inf = 1/(1+exp((((-R*T/F/Q*log(1/pow(((1+Cao*0.001/Kc)/(1+Cao*0.001/Ka)),4)/L0))-26)-(yh[x][0]-myShift))/7));
             alpha_xr1 = 450/(1+exp((-45-(yh[x][0]-myShift))/(10)));
             beta_xr1 = 6/(1+exp(((yh[x][0]-myShift)-(-30))/11.5));
             tau_xr1 = alpha_xr1*beta_xr1;
-            //xr1 = xr1_inf-(xr1_inf-xr1)*exp(-DT/tau_xr1);
-            yhdot[x][6] = (xr1_inf - yh[x][6])/tau_xr1;
+            yh[x][6] = xr1_inf-(xr1_inf-yh[x][6])*exp(-DT/tau_xr1);
+            //yhdot[x][6] = (xr1_inf - yh[x][6])/tau_xr1;
             //IKr, Xr2 gate////////////////////////////////////////////////////// 
             xr2_inf = 1/(1+exp(((yh[x][0]-myShift)-(-88))/24));
             alpha_xr2 = 3/(1+exp((-60-(yh[x][0]-myShift))/20));
             beta_xr2 = 1.12/(1+exp(((yh[x][0]-myShift)-60)/20));
             tau_xr2 = alpha_xr2*beta_xr2;
-            //xr2 = xr2_inf-(xr2_inf-xr2)*exp(-DT/tau_xr2);
-            yhdot[x][7] = (xr2_inf - yh[x][7])/tau_xr2;
+            yh[x][7] = xr2_inf-(xr2_inf-yh[x][7])*exp(-DT/tau_xr2);
+            //yhdot[x][7] = (xr2_inf - yh[x][7])/tau_xr2;
             //IKs, Xs gate/////////////////////////////////////////////////////// 
             xs_inf = 1/(1+exp((-5-yh[x][0])/14));
             alpha_xs = 1100/(sqrt(1+exp((-10-yh[x][0])/6)));
             beta_xs = 1/(1+exp((yh[x][0]-60)/20));
             tau_xs = alpha_xs*beta_xs;
-            //xs = xs_inf-(xs_inf-xs)*exp(-DT/tau_xs);
-            yhdot[x][8] = (xs_inf - yh[x][8])/tau_xs;
+            yh[x][8] = xs_inf-(xs_inf-yh[x][8])*exp(-DT/tau_xs);
+            //yhdot[x][8] = (xs_inf - yh[x][8])/tau_xs;
             //Ito, r gate/////////////////////////////////////////////////////// 
             r_inf = 1/(1+exp((-yh[x][0]+20+myShiftItoR)/(6*mySlopeItoR)));
             tau_r = myConstTauR*(9.5*exp(-pow((yh[x][0]+40),2)/1800)+0.8);
-            //r = r_inf-(r_inf-r)*exp(-DT/tau_r);
-            yhdot[x][9] = (r_inf - yh[x][9])/tau_r;
+            yh[x][9] = r_inf-(r_inf-yh[x][9])*exp(-DT/tau_r);
+            //yhdot[x][9] = (r_inf - yh[x][9])/tau_r;
             //Ito, s gate/////////////////////////////////////////////////////// 
             s_inf = 1/(1+exp((yh[x][0]+20+myShiftItoS)/(5*mySlopeItoS)));
             tau_s = myConstTauS*(85*exp(-(yh[x][0]+45)*(yh[x][0]+45)/320)+5/(1+exp((yh[x][0]-20)/5))+3);
-            //s = s_inf-(s_inf-s)*exp(-DT/tau_s);
-            yhdot[x][10] = (s_inf - yh[x][10])/tau_s;
+            yh[x][10] = s_inf-(s_inf-yh[x][10])*exp(-DT/tau_s);
+            //yhdot[x][10] = (s_inf - yh[x][10])/tau_s;
             //ICaL, d gate, and Irel d gate//////////////////////////////////////////
             alpha_d = 1.4/(1+exp((-35-yh[x][0])/13))+0.25;
             beta_d = 1.4/(1+exp((yh[x][0]+5)/5));
             gamma_d = 1/(1+exp((50-yh[x][0])/20));
             tau_d = alpha_d*beta_d+gamma_d;
             d_inf = 1/(1+exp(-(yh[x][0]-Vh_dCa)/kCa));
-            //d = d_inf-(d_inf-d)*exp(-DT/tau_d);
-            yhdot[x][11]=(d_inf - yh[x][11])/d_inf;
+            yh[x][11] = d_inf-(d_inf-yh[x][11])*exp(-DT/tau_d);
+            //yhdot[x][11]=(d_inf - yh[x][11])/d_inf;
             //ICaL, f gate///////////////////////////////////////////////////////////
             f_inf = 1/(1+exp((yh[x][0]+myVhfCaL)/myKfCaL));
             switch(DevelopmentalStage){
@@ -1207,8 +1194,8 @@ int main(){
                         else {tau_f = (1125*exp(-((yh[x][0]-myTauFShift)+27)*((yh[x][0]-myTauFShift)+27)/240)+80+165/(1+exp((25-(yh[x][0]-myTauFShift))/10)));}
                         break;
             }
-            //f = f_inf-(f_inf-f)*exp(-DT/tau_f);
-            yhdot[x][12]=(f_inf - yh[x][12])/tau_f;
+            yh[x][12] = f_inf-(f_inf-yh[x][12])*exp(-DT/tau_f);
+            //yhdot[x][12]=(f_inf - yh[x][12])/tau_f;
             //ICaL, fCa gate/////////////////////////////////////////////////////// 
             switch(DevelopmentalStage){
               case 'e':     f_ca_inf = (1/(1+(pow(((yh[x][1]-myShiftFCaInf)/0.000325),8)))+0.1/(1+exp(((yh[x][1]-myShiftFCaInf)-0.0005)/0.0001))+0.2/(1+exp(((yh[x][1]-myShiftFCaInf)-0.00075)/0.0008))+0.23)/1.46;
@@ -1221,13 +1208,13 @@ int main(){
             if ( yh[x][0] > -60.0 ){
               if ( f_ca_inf > yh[x][13] ) { yhdot[x][13] = yh[x][13];}
               else { 
-                //f_ca = f_ca_inf-(f_ca_inf-f_ca)*exp(-DT/tau_f_ca);
-                yhdot[x][13]=(f_ca_inf - yh[x][13])/tau_f_ca;
+                yh[x][13] = f_ca_inf-(f_ca_inf-yh[x][13])*exp(-DT/tau_f_ca);
+                //yhdot[x][13]=(f_ca_inf - yh[x][13])/tau_f_ca;
               }
             }
             else { 
-              //f_ca = f_ca_inf-(f_ca_inf-f_ca)*exp(-DT/tau_f_ca);
-              yhdot[x][13]=(f_ca_inf - yh[x][13])/tau_f_ca;
+              yh[x][13] = f_ca_inf-(f_ca_inf-yh[x][13])*exp(-DT/tau_f_ca);
+              //yhdot[x][13]=(f_ca_inf - yh[x][13])/tau_f_ca;
             }
             //Irel, g gate////////////////////////////////////////////////////////// 
             tau_g = 2.0;//units in ms
@@ -1236,36 +1223,33 @@ int main(){
             if ( yh[x][0] > -60.0 ){
               if (g_inf > yh[x][14]) {yhdot[x][14]= yh[x][14];}
               else { 
-                //g = g_inf-(g_inf-g)*exp(-DT/tau_g);
-                yhdot[x][14]=(g_inf - yh[x][14])/tau_g;
+                yh[x][14] = g_inf-(g_inf-yh[x][14])*exp(-DT/tau_g);
+                //yhdot[x][14]=(g_inf - yh[x][14])/tau_g;
               }
             }
             else { 
-              //g = g_inf-(g_inf-g)*exp(-DT/tau_g);
-              yhdot[x][14]=(g_inf - yh[x][14])/tau_g;
+              yh[x][14] = g_inf-(g_inf-yh[x][14])*exp(-DT/tau_g);
+              //yhdot[x][14]=(g_inf - yh[x][14])/tau_g;
             }
             //ICaT, dCaT gate//////////////////////////////////////////////////// 
             dCaT_inf = 1/(1+exp(-(yh[x][0]+26.3)/(6)));
             tau_dCaT = 1/(1.068*exp((yh[x][0]+26.3)/(30))+1.068*exp(-(yh[x][0]+26.3)/(30)));
-            //dCaT = dCaT_inf-(dCaT_inf-dCaT)*exp(-DT/tau_dCaT);
-            yhdot[x][15] = (dCaT_inf - yh[x][15])/tau_dCaT;
+            yh[x][15] = dCaT_inf-(dCaT_inf-yh[x][15])*exp(-DT/tau_dCaT);
+            //yhdot[x][15] = (dCaT_inf - yh[x][15])/tau_dCaT;
             //ICaT, fCaT gate//////////////////////////////////////////////////// 
             fCaT_inf = 1/(1+exp((yh[x][0]+61.7)/(5.6)));
             tau_fCaT = 1/(0.0153*exp(-(yh[x][0]+61.7)/(83.3))+ 0.015*exp((yh[x][0]+61.7)/(15.38)));
-            //fCaT = fCaT_inf-(fCaT_inf-fCaT)*exp(-DT/tau_fCaT);
-            yhdot[x][16] = (fCaT_inf - yh[x][16])/tau_fCaT;
+            yh[x][16]= fCaT_inf-(fCaT_inf-yh[x][16])*exp(-DT/tau_fCaT);
+            //yhdot[x][16] = (fCaT_inf - yh[x][16])/tau_fCaT;
             //If, Xf gate////////////////////////////////////////////////////////
             tau_xf = 1900;//ms
             xf_inf = 1/(1+exp((yh[x][0]-(-102.4))/(7.6)));
-            //xf = xf_inf-(xf_inf-xf)*exp(-DT/tau_xf);
-            yhdot[x][17] = (xf_inf - yh[x][17])/tau_xf;
+            yh[x][17]= xf_inf-(xf_inf- yh[x][17])*exp(-DT/tau_xf);
+            //yhdot[x][17] = (xf_inf - yh[x][17])/tau_xf;
             //IK1, alphas and betas////////////////////////////////////////////// 
             alpha_K1 = 0.1/(1+exp(0.06*((yh[x][0]-myShiftK1)-Ek-200)));
             beta_K1 = (3*exp(0.0002*((yh[x][0]-myShiftK1)-Ek+100))+exp(0.1*((yh[x][0]-myShiftK1)-Ek-10)))/(1+exp(-0.5*((yh[x][0]-myShiftK1)-Ek)));
             x_K1_inf = alpha_K1/(alpha_K1+beta_K1);
-
-
-
 
             //Na+ current, INa 
             INa = Gnamax*yh[x][3]*yh[x][3]*yh[x][3]*yh[x][4]*yh[x][5]*(yh[x][0]-Ena);
@@ -1313,13 +1297,12 @@ int main(){
             // Current injection
             if ( (( count <= stim_dur_int)&& (stim_fib[x] == 1))&& (num> stim_equil)) {
               Istim = -stim_mag;
+              //   cout <<"Stimulate hESC"<<endl;
             }
             else {
               Istim = 0.0;
 
             }
-
-            //dvdtold = dvdt;
 
             Itotal = INa + ICaL + Ito + IKr + IKs + IK1 + INaCa + INaK + IpCa + IbNa + IpK + IbCa + If + ICaT + Istim;
 
@@ -1348,14 +1331,21 @@ int main(){
             cc = Kbufc*(CaBuf+yhdot[x][1]+yh[x][1]);
             yh[x][1] = (sqrt(bc*bc+4*cc)-bc)/2;
 
-
             yhdot[x][0] = -Itotal;
 
+            //Update gates not calculated using rush-larsen method
+            yh[x][0] = yh[x][0] + DT * yhdot[x][0];
+            yh[x][1] = yh[x][1] + DT * yhdot[x][1];
+            yh[x][2] = yh[x][2] + DT * yhdot[x][2];
+
+
             //Update membrane potential and gates
-            for (int cc=0; cc<18; cc++) yh[x][cc] = yh[x][cc] + DT * yhdot[x][cc];
+            // for (int cc=0; cc<18; cc++) yh[x][cc] = yh[x][cc] + DT * yhdot[x][cc];
 
             if(count%file_filter==0) fprintf(output2,"%.12f\t",yh[x][0]);
-          }
+
+
+          } //end of cell loop fibroblast
           break;
 
         case 'f':
@@ -1373,7 +1363,7 @@ int main(){
 
             IbNa_fib = GbNa_fib * (yf[x][0] - ENa_fib);
 
-                        // Current injection
+            // Current injection
             if ( (( count <= stim_dur_int)&& (stim_fib[x] == 1))&& (num> stim_equil)) {
               I_stim_fib = -stim_mag;
             }
@@ -1470,7 +1460,7 @@ int main(){
           else{ //If neighbor is a fibroblast
             //G = 8e-3;
             Vj = (Vfib[ abs(neighbor[p][N])-1][0] - Vmyo[p][0]);//Neighbor minus 1 to get the right vector index?
-            G = 8e-3;
+            G = 0.0008;
             if(dynamicGapOn){ G = G * dyngap(Vj, CX43CX45);}//This is a Cx43Cx45 channel
           }
           sum_myo += G * Vj;//current in units of uA.
@@ -1479,12 +1469,12 @@ int main(){
           //G = 8e-3; //Units converted to nS for fibroblast model
           if(neighbor[p][N] > 0){ //If neighbor is a myocyte
             Vj = (Vmyo[ abs(neighbor[p][N])-1][0] - Vfib[p][0]);//Neighbor minus 1 to get the right vector index?
-            G = 8e-3; 
+            G = 0.0008; 
             if(dynamicGapOn){G = G * dyngap(-Vj, CX43CX45);}//This is a Cx45Cx43 channel so just switch sign of Vj in the Cx43Cx45 model
           }
           else{//If neighbor is fibroblast
             Vj = (Vfib[ abs(neighbor[p][N])-1][0] - Vfib[p][0]);//Neighbor minus 1 to get the right vector index?
-            G = 8e-3;
+            G = 0.0008;
             if(dynamicGapOn){G = G * dyngap(Vj, CX45CX45);}//This is a Cx45Cx45 channel
           }
           sum_fib += G * Vj;//current in units of pA
