@@ -21,6 +21,7 @@ using namespace std;
 
 
 
+
 //Model characteristics
 const double epi = 0;//Cell type of model is originally endo
 const double HF = 0; //To simulate the heart failure model use HF=1
@@ -33,12 +34,12 @@ int stim_equil = 1;
 int file_filter = 1000;
 double stim_mag=19.5;
 double stim_dur=3;
-int stim_col_max=2, stim_row_max=2;
+int stim_col_max=4, stim_row_max=4;
 double bcl=500;
 double DT = 0.005;
 char output_file_name[30] = "testGrandi.dat";
 char output_file_name2[30] = "testGrandi2.dat";
-//char output_file_name3[30] = "params.dat";
+char output_file_name3[30] = "params.dat";
 //char output_file_name4[30] = "voltage.dat";
 
 const char *neighbors_myo_file = "neighbors_myo_file.dat";
@@ -46,7 +47,6 @@ const char *neighbors_fib_file = "neighbors_fib_file.dat";
 //char stim_myo_file[30] = "stim_myo_file.dat";
 //char stim_fib_file[30] = "stim_fib_file.dat";
 const char *grid_file = "grid_file.dat";
-
 
 //Declaration of scaling parameters
 double scaleNaL;
@@ -120,7 +120,7 @@ enum cx_model{
 double dyngap(double, cx_model);
 
 //Function prototypes
-void calcAPD(double [], double []);
+//void calcAPD(double, double, int);
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 int main(){
@@ -270,13 +270,11 @@ int main(){
   }
 
 
-  FILE *output, *output2, *output3, *output4;
+  FILE *output, *output2, *output3;//, *output4;
   output = fopen(output_file_name, "w");
   output2 = fopen(output_file_name2, "w");
-  // output3 = fopen(output_file_name3, "w");
+  output3 = fopen(output_file_name3, "w");
   // output4 = fopen(output_file_name4, "w");
-
-
 
   vector <vector<int> > neighbors_myo = fileToVector(neighbors_myo_file);
   vector <vector<int> > neighbors_fib = fileToVector(neighbors_fib_file);
@@ -295,7 +293,6 @@ int main(){
   int prev=0, curr=0;
   int stim_fib_index = 0;
   int stim_myo_index = 0;
-
 
   for (int r=0; r < stim_row_max; r++){
     for (int c=0; c < stim_col_max; c++){
@@ -317,17 +314,17 @@ int main(){
       prev = curr;
     }
   }
+
   const int CVL_cell1 = floor(NCOLS/4);
   const int CVL_cell2 = floor((NCOLS/4)*3);
   const int CVT_cell1 = floor(NROWS/4);
   const int CVT_cell2 = floor((NROWS/4)*3);
-  double CVstart;
-
 
   const int CVL_1 = thegrid[floor(NROWS/2)][CVL_cell1];
   const int CVL_2 = thegrid[floor(NROWS/2)][CVL_cell2];
   const int CVT_1 = thegrid[CVT_cell1][floor(NROWS/2)];
   const int CVT_2 = thegrid[CVT_cell2][floor(NROWS/2)];
+  double CVstart;
 
   cout <<"Longitudinal cells: "<< CVL_1 << " & " << CVL_2<<endl;
   cout <<"Transverse cells: "<< CVT_1 << " & " << CVT_2 <<endl;
@@ -348,14 +345,20 @@ int main(){
   //Variables to measure AP parameters
   double V_myo[CELLS_myo];
   double V_fib[CELLS_fib];
-  double Vrest[CELLS_myo];
-  double apd90[CELLS_myo];
-  double dvdtmax[CELLS_myo];
-  double apd_start[CELLS_myo];
-  double apd90_t1[CELLS_myo], apd90_t2[CELLS_myo];
-  double upstroke90[CELLS_myo], downstroke[CELLS_myo];
-
-
+  vector<double> Vrest;
+  vector<double> apd90;
+  vector<int> apd90_start;
+  vector<double> apd90_t1;
+  vector<double> apd90_t2;
+  vector<double> upstroke90;
+  vector<double> downstroke90;
+  Vrest.resize(CELLS_myo);
+  apd90.resize(CELLS_myo);
+  apd90_start.resize(CELLS_myo);
+  apd90_t1.resize(CELLS_myo);
+  apd90_t2.resize(CELLS_myo);
+  upstroke90.resize(CELLS_myo);
+  downstroke90.resize(CELLS_myo);
 
   //Constants
   const double R = 8314;       // [J/kmol*K]
@@ -365,7 +368,6 @@ int main(){
   const double Cmem = 1.3810e-10;   // [F] membrane capacitance
   const double Qpow = (Temp-310)/10;
   const double pi = 3.141592653589793;
-
 
   //Cell geometry (consider simplifying calculations
   double cellLength = 100;     // cell length [um]
@@ -413,7 +415,6 @@ int main(){
   double ek;	        // [mV]
   double eca_junc;   // [mV]
   double eca_sl;     // [mV]
-
 
   //Na transport parameters
   double GNa=23;
@@ -541,6 +542,7 @@ int main(){
   double I_Na_tot_junc, I_Na_tot_sl, I_Na_tot_sl2, I_Na_tot_junc2;
   double I_K_tot, I_Ca_tot_junc, I_Ca_tot_sl, I_to;
   float r;
+
   //hESCM parameters
   //---------------------------------------------------------------------------------------------------
   //// Constants
@@ -566,33 +568,27 @@ int main(){
   double Vsr_hesc=1.094*RaCm;
   double capacitance=0.185*1000*RaCm;
 
-
   //// Flag to choose between epi, endo and M cell types
   int epi=1;
   int endo=0;
   int Mcell=0;
 
   //// Ionic Currents
-
   //// Fast Na+ Current
   double Vh_h=-73;
   double k_h=5.6;
   double Gnamax=14.838*RaINa; // [nS/pF] maximal INa conductance
-
 
   //// If Current
   double Gf=0.090926*RaIf;
   //double x0=-89.73015*Rax0;
   //double dx=11.7335*Radx;
 
-
   //// L-type Ca2+ Current
-
   double GCaL=0.000175*RaICaL;  // [m^3/F/s] maximal ICaL conductance
 
   //// T-type Ca2+ Current
   double GICaT = 0.1832*RaICaT; //[S/F]
-
 
   //// Transient Outward Current
   double GItoepi=0.294*RaIto;   // [S/F] maximal ITo conductance
@@ -601,7 +597,6 @@ int main(){
   int soepi=1;
   int soendo=1;
 
-
   //// IKs
   double GKsepi   =0.157*RaIKs; //245; //[S/F] maximal IKs conductance
   double GKsendo  =157; //245;// [S/F] maximal IKs conductance
@@ -609,13 +604,11 @@ int main(){
   double pKNa=0.03;   // [ ]
 
   //// IKr
-
   double GKr=0.096*sqrt(Ko/5.4)*RaIKr; //GKr=96 nS/pF maximal IKr conductance
   double Q=2.3;
   double L0=0.025;
   double Kc=0.58e-3;
   double Ka=2.6e-3;
-
 
   //// Inward Rectifier K+ Current
   double gK1max=5.405*sqrt(Ko/5.4)*RaIK1; // maximal IK1 conductance
@@ -671,16 +664,14 @@ int main(){
 
   vector< vector< double > > y(CELLS_myo, vector< double >( 42 ) );
   vector< vector< double > > ydot(CELLS_myo, vector< double >( 42 ) );
-
   vector< vector< double > > yh(CELLS_fib, vector< double >( 18 ) );
   vector< vector< double > > yhdot(CELLS_fib, vector< double >( 18 ) );
-
-  //  cout << "vectors loaded"<<endl;
+  //cout << "vectors loaded"<<endl;
 
   //Initialize myocyte variables
-  for (int node = 0; node<CELLS_myo; node++){
-    V_myo[node] = -8.1386313e+1;//previous myo voltage
-    Vrest[node] = 0;
+  for (int node=0; node<CELLS_myo; node++){
+    V_myo[node]=-8.1386313e+1;//previous myo voltage
+    Vrest[node]=0;
     upstroke90[node]=0;
     downstroke90[node]=0;
     apd90_start[node]=-1;
@@ -765,7 +756,16 @@ int main(){
     num = num + 1;//Number is the num of beats.
     count = 0;//Integer representation of time
 
-    //for(t=tmin + DT; t<=tmax; t+=DT){
+    for (int node = 0; node<CELLS_myo; node++){
+      // Values for APD Calculation
+      fprintf(output3,"%.12f\t", apd90[node]);
+      apd90_start[node] = -1;
+      Vrest[node] = y[node][0];
+      upstroke90[node] = Vrest[node] - (Vrest[node]*0.5);
+      downstroke90[node] = Vrest[node] - (Vrest[node]*0.1);
+    }
+    fprintf(output3,"\n");
+
     while ( count < bcl_int ){
       count = count + 1;
       time = count * DT;//Time since start of cycle in ms
@@ -1007,13 +1007,11 @@ int main(){
 
         I_Na_tot_junc = I_Na_junc+I_NaL_junc+I_nabk_junc+3*I_ncx_junc+3*I_nak_junc+I_CaNa_junc;   // [uA/uF] With INaL---
         I_Na_tot_sl = I_Na_sl+I_NaL_sl+I_nabk_sl+3*I_ncx_sl+3*I_nak_sl+I_CaNa_sl; // [uA/uF]
-
         I_Na_tot_sl2 = 3*I_ncx_sl+3*I_nak_sl+I_CaNa_sl;   // [uA/uF]
         I_Na_tot_junc2 = 3*I_ncx_junc+3*I_nak_junc+I_CaNa_junc;   // [uA/uF]
 
         ydot[x][32] = -I_Na_tot_junc*Cmem/(Vjunc*Frdy)+J_na_juncsl/Vjunc*(y[x][33]-y[x][32])-ydot[x][17];
         ydot[x][33] = -I_Na_tot_sl*Cmem/(Vsl*Frdy)+J_na_juncsl/Vsl*(y[x][32]-y[x][33])+J_na_slmyo/Vsl*(y[x][34]-y[x][33])-ydot[x][18];
-
         ydot[x][34] = J_na_slmyo/Vmyo*(y[x][33]-y[x][34]);             // [mM/msec]
 
         //Potassium Concentration
@@ -1025,7 +1023,6 @@ int main(){
         I_Ca_tot_sl = I_Ca_sl+I_cabk_sl+I_pca_sl-2*I_ncx_sl;            // [uA/uF]
         ydot[x][36] = -I_Ca_tot_junc*Cmem/(Vjunc*2*Frdy)+J_ca_juncsl/Vjunc*(y[x][37]-y[x][36]) -J_CaB_junction+(J_SRCarel)*Vsr/Vjunc+J_SRleak*Vmyo/Vjunc;  // Ca_j
         ydot[x][37] = -I_Ca_tot_sl*Cmem/(Vsl*2*Frdy)+J_ca_juncsl/Vsl*(y[x][36]-y[x][37]) + J_ca_slmyo/Vsl*(y[x][38]-y[x][37])-J_CaB_sl;   // Ca_sl
-
         ydot[x][38] = -J_serca*Vsr/Vmyo-J_CaB_cytosol +J_ca_slmyo/Vmyo*(y[x][37]-y[x][38]);
 
         /* Current injection */
@@ -1048,6 +1045,17 @@ int main(){
         //Update membrane potential and gates
         for (int cc=0; cc<42; cc++) y[x][cc] = y[x][cc]+DT*ydot[x][cc];
 
+        //Calculate APD//////////////////////////////////////////////
+        if ( apd90_start[x] == -1 && y[x][0] > upstroke90[x] ){	
+          apd90_t1[x] = time;
+          apd90_start[x] = 0;
+        }
+        if ( apd90_start[x] == 0 && y[x][0] < downstroke90[x] ){
+          apd90_t2[x] = time;
+          apd90_start[x] = 1;
+          apd90[x] = apd90_t2[x] - apd90_t1[x];
+        }
+        //Calculate APD//////////////////////////////////////////////
         if(count%file_filter==0) 
         {
           fprintf(output,"%.12f\t",y[x][0]);
@@ -1059,21 +1067,21 @@ int main(){
         //  fprintf(output3,"\n");
       }
       //Start of the hESCM dimensions
-      ///////////////////////////////////////////////////////////////////////////////////////////
+      ///////////////////////////////////////////////////////////////
       for (int x = 0; x<CELLS_fib; x++){
         //Reversal potentials
         Eca = 0.5*(R*T/F)*log(Cao/yh[x][1]);
         Ek = (R*T/F)*log(Ko/Ki);
         Ena = (R*T/F)*log(Nao/Nai);
         Eks = (R*T/F)*(log((Ko+pKNa*Nao)/(Ki+pKNa*Nai)));
-        //INa m gate//////////////////////////////////////////////////////////////
+        //INa m gate/////////////////////////////////////////////////
         alpha_m = 1/(1+exp((-60-yh[x][0])/5));
         beta_m = 0.1/(1+exp((yh[x][0]+35)/5))+0.1/(1+exp((yh[x][0]-50)/200));
         tau_m = alpha_m*beta_m;
         m_inf = 1/((1+exp((-56.86-yh[x][0])/9.03))*(1+exp((-56.86-yh[x][0])/9.03)));
         yh[x][3] = m_inf-(m_inf-yh[x][3])*exp(-DT/(tau_m));
         //yhdot[x][3] = (m_inf - yh[x][3])/tau_m;
-        //INa, h gate /////////////////////////////////////////////////////////////
+        //INa, h gate //////////////////////////////////////////////
         switch(DevelopmentalStage){
           case 'e': h_inf = pow((1/(1+exp((yh[x][0]-Vh_h)/k_h))),0.5);//yh[x][0]h_h = -73, k_h = 5.6
                     break;
@@ -1144,7 +1152,7 @@ int main(){
         tau_s = myConstTauS*(85*exp(-(yh[x][0]+45)*(yh[x][0]+45)/320)+5/(1+exp((yh[x][0]-20)/5))+3);
         yh[x][10] = s_inf-(s_inf-yh[x][10])*exp(-DT/tau_s);
         //yhdot[x][10] = (s_inf - yh[x][10])/tau_s;
-        //ICaL, d gate, and Irel d gate//////////////////////////////////////////
+        //ICaL, d gate, and Irel d gate/////////////////////////////////////
         alpha_d = 1.4/(1+exp((-35-yh[x][0])/13))+0.25;
         beta_d = 1.4/(1+exp((yh[x][0]+5)/5));
         gamma_d = 1/(1+exp((50-yh[x][0])/20));
@@ -1152,7 +1160,7 @@ int main(){
         d_inf = 1/(1+exp(-(yh[x][0]-Vh_dCa)/kCa));
         yh[x][11] = d_inf-(d_inf-yh[x][11])*exp(-DT/tau_d);
         //yhdot[x][11]=(d_inf - yh[x][11])/d_inf;
-        //ICaL, f gate///////////////////////////////////////////////////////////
+        //ICaL, f gate//////////////////////////////////////////////////////
         f_inf = 1/(1+exp((yh[x][0]+myVhfCaL)/myKfCaL));
         switch(DevelopmentalStage){
           case 'e': tau_f = 100.;
@@ -1307,13 +1315,10 @@ int main(){
         yh[x][1] = yh[x][1] + DT * yhdot[x][1];
         yh[x][2] = yh[x][2] + DT * yhdot[x][2];
 
-
         //Update membrane potential and gates
         // for (int cc=0; cc<18; cc++) yh[x][cc] = yh[x][cc] + DT * yhdot[x][cc];
 
         if(count%file_filter==0) fprintf(output2,"%.12f\t",yh[x][0]);
-
-
       } //end of cell loop fibroblast
       // for (int bb=0; bb<18; bb++) printf("yh[node][%d] = %.12f;\n",bb,yh[0][bb]);
       ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1325,166 +1330,163 @@ int main(){
       PDE(y, yh, neighbors_myo, DynamicGapON);
       //cout << "I out function: " << ydot[0][0] << endl;
       //cout<<"first pde"<<endl;
+
+      //Calculate Conduction Velocity/////////////////////////////////////////////////////////////
       PDE(y, yh, neighbors_fib, DynamicGapON);
       if (y[CVL_1][0] >= -40 &&  V_myo[CVL_1]<-40) CVstart = time;
       if (y[CVL_2][0] >= -40 &&  V_myo[CVL_2]<-40){
         cout <<"Longitudinal CV = " <<((CVL_cell2 - CVL_cell1)* 25e-4)/(time - CVstart)*1000 << endl;
-
       }
 
       if (y[CVT_1][0] >= -40 &&  V_myo[CVT_1]<-40) CVstart = time;
       if (y[CVT_2][0] >= -40 &&  V_myo[CVT_2]<-40){
-        cout <<"Longitudinal CV = " <<((CVT_cell2 - CVT_cell1)* 25e-4)/(time - CVstart)*1000 << endl;
-
+        cout <<"Transverse CV = " <<((CVT_cell2 - CVT_cell1)* 25e-4)/(time - CVstart)*1000 << endl;
       }
+      //Stores previous voltage values for myocyte and fibroblast
+      for (int aa=0; aa<CELLS_myo; aa++) {V_myo[aa] = y[aa][0];}
+      for (int dd=0; dd<CELLS_fib; dd++) {V_fib[dd] = yh[dd][0];}
 
-      for (int aa=0; aa<CELLS_myo; aa++) {
-        V_myo[aa] = y[aa][0];
-      }
+      //Calculate Conduction Velocity/////////////////////////////////////////////////////////////
 
-      for (int dd=0; dd<CELLS_fib; dd++) {
-        V_fib[dd] = yh[dd][0];
-      }
 
     } //end of bcl loop
 
 
   }// end of stimulation loop
-
   for (int bb=0; bb<42; bb++) printf("y[node][%d] = %.12f;\n",bb,y[0][bb]);
   for (int bb=0; bb<18; bb++) printf("yh[node][%d] = %.12f;\n",bb,yh[0][bb]);
 
   fclose(output);
   fclose(output2);
-  // fclose(output3);
+  fclose(output3);
   // fclose(output4);
   t2=clock();
   cout <<"Runtime: "<< ((float)t2-(float)t1)/(CLOCKS_PER_SEC*60) << " min(s)" <<endl;
   return 0;
-  }
-  void PDE( vector< vector<double> >  &Vmyo, vector< vector<double> > &Vfib, vector< vector<int> >  neighbor, bool dynamicGapOn ){//& pass by reference changes the original parameter
-    double G, Vj;
-    vector< vector<double> > temp;
-    vector< vector<double> > temp2;
-    temp = Vmyo;
-    temp2 = Vfib;
-    for (int p = 0; p < neighbor.size(); p++){
-      double sum_myo=0,sum_fib=0;
-      for (int N = 1; N < neighbor[p].size(); N++){//starts at 1 because first entry (0) is self
-        if(neighbor[p][0] > 0){//If self is a myocyte, determine neighbor
-          if(neighbor[p][N] > 0){ //If neighbor is a myocyte
-            if((neighbor[p][N] == p+2)||(neighbor[p][N] == p-0)){//lazy way of indicating end to end connections
-              G = .06 ; //If the neighbor is end to end then conductance should be 600
-            }
-            else{
-              G = .02; //200 nS converted to uS for the currents
-            }
-            Vj = (Vmyo[ abs(neighbor[p][N])-1][0] - Vmyo[p][0]);//Neighbor minus 1 to get the right vector index?
-            if(dynamicGapOn){G = G * dyngap(Vj, CX43CX43);}
-          }
-          else{ //If neighbor is a fibroblast
-            //G = 8e-3;
-            Vj = (Vfib[ abs(neighbor[p][N])-1][0] - Vmyo[p][0]);//Neighbor minus 1 to get the right vector index?
-            G = 0.0008;
-            if(dynamicGapOn){ G = G * dyngap(Vj, CX43CX45);}//This is a Cx43Cx45 channel
-          }
-          sum_myo += G * Vj;//current in units of uA.
-        }
-        else {//If self is a fibroblast
-          //G = 8e-3; //Units converted to nS for fibroblast model
-          if(neighbor[p][N] > 0){ //If neighbor is a myocyte
-            Vj = (Vmyo[ abs(neighbor[p][N])-1][0] - Vfib[p][0]);//Neighbor minus 1 to get the right vector index?
-            G = 0.0008; 
-            if(dynamicGapOn){G = G * dyngap(-Vj, CX43CX45);}//This is a Cx45Cx43 channel so just switch sign of Vj in the Cx43Cx45 model
-          }
-          else{//If neighbor is fibroblast
-            Vj = (Vfib[ abs(neighbor[p][N])-1][0] - Vfib[p][0]);//Neighbor minus 1 to get the right vector index?
-            G = 0.0008;
-            if(dynamicGapOn){G = G * dyngap(Vj, CX45CX45);}//This is a Cx45Cx45 channel
-          }
-          sum_fib += G * Vj;//current in units of pA
-        }
-      }
-      if(neighbor[p][0] > 0){
-        temp[p][0] +=  sum_myo * (1./125);//125 pF myocyte converted to uF //Still unsure if I should be multiplying by DT
-      }
-      else{
-        temp2[p][0] += sum_fib * (1./25);//25 pF fibroblast 
-      }
-    }
-    Vmyo = temp;
-    Vfib = temp2;
-  }
-  vector<vector<int> > fileToVector(const char *name){
-    vector<vector<int> > result;
-    ifstream input (name);
-    string lineData;
-    while(getline(input, lineData))
-    {
-      if(lineData.empty()){
-        cout<<"File empty"<<endl;
-      }
-      else{
-        double d;
-        vector<int> row;
-        stringstream lineStream(lineData);
-
-        while (lineStream >> d){
-          row.push_back(d);
-        }
-        result.push_back(row);
-      }
-    }
-    return result;
-  }
-  double dyngap(double VJ, cx_model cx_choice){
-    double A1, A2;
-    double V1, V2;
-    double g_res, g_max;
-    // double VJ;
-    //cout << "In dyngap" << endl;
-    //  VJ = Vright - Vleft;
-    switch (cx_choice){
-      case 0:
-        //Parameters for homotypic gap junction model
-        A1=0.058;
-        V1=61.3;
-        A2=0.058;
-        V2=61.3;
-        g_res=0.29;
-        g_max=1.00;
-        break;
-      case 1://Cell on the left is Cx43, cell on the right is Cx45
-        A1=0.088;
-        V1 = 22.3;
-        A2=0.027;
-        V2=125.3;
-        g_res=0.04;
-        g_max=1.03;
-        break;
-      case 2:
-        A1=0.110;
-        V1 = 10.2;
-        A2=0.110;
-        V2=10.2;
-        g_res=0.06;
-        g_max=1.56;
-        break;
-      default: 
-        break;
-    }
-    return (g_res + ((g_max - g_res)/(1 + exp(A1 * (-VJ - V1)) + exp(A2 * (VJ - V2)))));//Contingent gating model
-
-  } 
-  void calcAPD( double time, double voltage ){
-	if ( APD90_start == -1 && voltage > upstroke90 ){	
-		APD90_t1 = time;
-		APD90_start = 0;
-	}
-	if ( APD90_start == 0 && voltage < downstroke90 ){
-		APD90_t2 = time;
-		APD90_start = 1;
-		APD90 = APD90_t2 - APD90_t1;
-	}
 }
+void PDE( vector< vector<double> >  &Vmyo, vector< vector<double> > &Vfib, vector< vector<int> >  neighbor, bool dynamicGapOn ){//& pass by reference changes the original parameter
+  double G, Vj;
+  vector< vector<double> > temp;
+  vector< vector<double> > temp2;
+  temp = Vmyo;
+  temp2 = Vfib;
+  for (int p = 0; p < neighbor.size(); p++){
+    double sum_myo=0,sum_fib=0;
+    for (int N = 1; N < neighbor[p].size(); N++){//starts at 1 because first entry (0) is self
+      if(neighbor[p][0] > 0){//If self is a myocyte, determine neighbor
+        if(neighbor[p][N] > 0){ //If neighbor is a myocyte
+          if((neighbor[p][N] == p+2)||(neighbor[p][N] == p-0)){//lazy way of indicating end to end connections
+            G = .06 ; //If the neighbor is end to end then conductance should be 600
+          }
+          else{
+            G = .02; //200 nS converted to uS for the currents
+          }
+          Vj = (Vmyo[ abs(neighbor[p][N])-1][0] - Vmyo[p][0]);//Neighbor minus 1 to get the right vector index?
+          if(dynamicGapOn){G = G * dyngap(Vj, CX43CX43);}
+        }
+        else{ //If neighbor is a fibroblast
+          //G = 8e-3;
+          Vj = (Vfib[ abs(neighbor[p][N])-1][0] - Vmyo[p][0]);//Neighbor minus 1 to get the right vector index?
+          G = 0.0008;
+          if(dynamicGapOn){ G = G * dyngap(Vj, CX43CX45);}//This is a Cx43Cx45 channel
+        }
+        sum_myo += G * Vj;//current in units of uA.
+      }
+      else {//If self is a fibroblast
+        if(neighbor[p][N] > 0){ //If neighbor is a myocyte
+          Vj = (Vmyo[ abs(neighbor[p][N])-1][0] - Vfib[p][0]);//Neighbor minus 1 to get the right vector index?
+          G = 0.0008; 
+          if(dynamicGapOn){G = G * dyngap(-Vj, CX43CX45);}//This is a Cx45Cx43 channel so just switch sign of Vj in the Cx43Cx45 model
+        }
+        else{//If neighbor is fibroblast
+          Vj = (Vfib[ abs(neighbor[p][N])-1][0] - Vfib[p][0]);//Neighbor minus 1 to get the right vector index?
+          G = 0.0008;
+          if(dynamicGapOn){G = G * dyngap(Vj, CX45CX45);}//This is a Cx45Cx45 channel
+        }
+        sum_fib += G * Vj;//current in units of pA
+      }
+    }
+    if(neighbor[p][0] > 0){
+      temp[p][0] +=  sum_myo * (1./125);//125 pF myocyte converted to uF //Still unsure if I should be multiplying by DT
+    }
+    else{
+      temp2[p][0] += sum_fib * (1./25);//25 pF fibroblast 
+    }
+  }
+  Vmyo = temp;
+  Vfib = temp2;
+}
+vector<vector<int> > fileToVector(const char *name){
+  vector<vector<int> > result;
+  ifstream input (name);
+  string lineData;
+  while(getline(input, lineData))
+  {
+    if(lineData.empty()){
+      cout<<"File empty"<<endl;
+    }
+    else{
+      double d;
+      vector<int> row;
+      stringstream lineStream(lineData);
 
+      while (lineStream >> d){
+        row.push_back(d);
+      }
+      result.push_back(row);
+    }
+  }
+  return result;
+}
+double dyngap(double VJ, cx_model cx_choice){
+  double A1, A2;
+  double V1, V2;
+  double g_res, g_max;
+  // double VJ;
+  //cout << "In dyngap" << endl;
+  //  VJ = Vright - Vleft;
+  switch (cx_choice){
+    case 0:
+      //Parameters for homotypic gap junction model
+      A1=0.058;
+      V1=61.3;
+      A2=0.058;
+      V2=61.3;
+      g_res=0.29;
+      g_max=1.00;
+      break;
+    case 1://Cell on the left is Cx43, cell on the right is Cx45
+      A1=0.088;
+      V1 = 22.3;
+      A2=0.027;
+      V2=125.3;
+      g_res=0.04;
+      g_max=1.03;
+      break;
+    case 2:
+      A1=0.110;
+      V1 = 10.2;
+      A2=0.110;
+      V2=10.2;
+      g_res=0.06;
+      g_max=1.56;
+      break;
+    default: 
+      break;
+  }
+  return (g_res + ((g_max - g_res)/(1 + exp(A1 * (-VJ - V1)) + exp(A2 * (VJ - V2)))));//Contingent gating model
+
+}
+/*
+   void calcAPD(double time, double voltage, int n){
+   if ( apd90_start[n] == -1 && voltage > upstroke90[n] ){	
+   apd90_t1[n] = time;
+   apd90_start[n] = 0;
+   }
+   if ( apd90_start[n] == 0 && voltage < downstroke90[n] ){
+   apd90_t2[n] = time;
+   apd90_start[n] = 1;
+   apd90[n] = apd90_t2[n] - apd90_t1[n];
+   }
+   }
+   */

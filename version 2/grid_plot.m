@@ -1,13 +1,13 @@
 grid_values = importdata('grid_file.dat');           % A 5-by-5 matrix of random values from 0 to 1
 label_flag = 1;
 figure(1);
-imagesc(sign(grid_values));            % Create a colored plot of the matrix values
-%imagesc(grid_values);
-map = hsv(20);
-%colormap(map);
+%imagesc(sign(grid_values));            % Create a colored plot of the matrix values
+imagesc(grid_values/5);
+%map = gray;
+colormap((gray));
 
-map2 = spring(25);
-colormap([map(15,:);map2(12,:)]);  % Change the colormap to gray (so higher values are
+%map2 = spring(25);
+%colormap([map(15,:);map2(12,:)]);  % Change the colormap to gray (so higher values are
                          %   black and lower values are white
  %set(gca,'YDir','normal')                        
 
@@ -94,7 +94,7 @@ end
 %winopen('myPeaks1.avi')
 %% creates AVI movie
 figure(3)
-writerObj = VideoWriter('2013_08_04_25by25grid_3stim_500bcl_0s_equil_3d_4by4stim_Cm_scale_dyngap.avi');
+writerObj = VideoWriter('2013_08_16_25by25grid_5stim_500bcl_2s_equil_3d_4by4stim_Cm_scale.avi');
 writerObj.FrameRate = 20;
 open(writerObj);
 
