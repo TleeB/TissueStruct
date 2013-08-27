@@ -94,7 +94,7 @@ end
 %winopen('myPeaks1.avi')
 %% creates AVI movie
 figure(3)
-writerObj = VideoWriter('2013_08_16_25by25grid_5stim_500bcl_2s_equil_3d_4by4stim_Cm_scale.avi');
+writerObj = VideoWriter('2013_08_16_25by25grid_5stim_500bcl_2s_equil_3d_4by4stim_Cm_scale.mp2');
 writerObj.FrameRate = 20;
 open(writerObj);
 

@@ -10,6 +10,11 @@
 //Vectors to hold neighbors
 #include <vector>
 
+//v1.0 Code produces a 2D grid of user defined size which contains user defined alpha for the ratio
+//of fib to myocytes. Whether a given cell is a fibroblast or myocyte is random.
+//Also produces list of myocytes and fibroblasts and all neighbors. Also produces list of cells to be stimulated.
+//v1.1 Stimulated cells moved outside of grid file to separate structure from simulation
+
 using namespace std;
 int length_myo = 5;
 int length_fib = 1;
@@ -33,7 +38,7 @@ int main(){//Forgot the double parenthesis
   //Define boost library random number generator
   typedef boost::mt19937 RNGType;
   //static RNGType rng(static_cast<unsigned int>(std::time(0)));
-  static RNGType rng(static_cast<unsigned int>(0));
+  static RNGType rng(static_cast<unsigned int>(0)); //In order to produce reproducible results set a defined seed
 
 
   //Initialize myocyte counter
