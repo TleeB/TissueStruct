@@ -9,6 +9,8 @@
 // This version was converted from original matlab code to C++ by:
 // Author: Tashalee Brown (July 2013)
 // v1.0: Non-variable time step implementation
+// v2.0: Added APD and CV calculations
+// v3.0: Adding vogel gap junctions
 #include <cmath>
 #include <iostream>
 #include <sstream>
@@ -17,10 +19,21 @@
 #include <vector>
 #include <cstdio>
 #include <time.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_roots.h>
+#include <gsl/gsl_errno.h>
+
 using namespace std;
 
+//Header for root solving
+const gsl_root_fdfsolver_type *TypePtr;
+gsl_root_fdfsolver *SolverPtr;
 
-
+gsl_function_fdf FDF_hh;//defines gsl functions
+gsl_function_fdf FDF_ll;
+gsl_function_fdf FDF_hl;
+gsl_function_fdf FDF_lh;
 
 //Model characteristics
 const double epi = 0;//Cell type of model is originally endo
@@ -107,6 +120,8 @@ double RaIback;
 //Function to calculate PDE
 void PDE(vector<vector<double> > &, vector<vector<double> > &, vector <vector<int> >, bool);
 
+
+
 //Function to read files and retune 2D vector of content
 vector<vector<int> > fileToVector(const char *name);
 
@@ -118,12 +133,45 @@ enum cx_model{
 
 //Function for dynamic gap junctions
 double dyngap(double, cx_model);
+//Function for dynamic gap junctions
+double dyngap2(double, cx_model);
+
+struct voltage_params{
+  double G1H, G2H, G1L, G2L, V1H, V2H, V1L, V2L, VJ;
+};
+
+double rootSolver(gsl_function_fdf, double);
+//Functions to be solved for roots, each with fcn, deriv, and fdf (which is solving fcn and deriv simultaneously)
+double voltagehh (double vhh, void *params);
+double voltagehh_deriv (double vhh, void *params);
+void voltagehh_fdf (double vhh, void *params, double *_vhh, double *_dvhh);
+double voltagell (double vll, void *params);
+double voltagell_deriv (double vll, void *params);
+void voltagell_fdf (double vll, void *params, double *_vll, double *_dvll);
+double voltagehl (double vhl, void *params);
+double voltagehl_deriv (double vhl, void *params);
+void voltagehl_fdf (double vhl, void *params, double *_vhl, double *_dvhl);
+double voltagelh (double vlh, void *params);
+double voltagelh_deriv (double vlh, void *params);
+void voltagelh_fdf (double vlh, void *params, double *_vlh, double *_dvlh);
+
+
+
 
 //Function prototypes
 //void calcAPD(double, double, int);
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 int main(){
+
+  //Model Initialization
+  //Initialize Root solver
+  TypePtr = gsl_root_fdfsolver_newton;//Creates an instance of newton solver
+  SolverPtr = gsl_root_fdfsolver_alloc (TypePtr);
+
+  cout <<"\n Initialized GSL Root Solver: "<<gsl_root_fdfsolver_name(SolverPtr)<<endl;
+
+
   clock_t t1, t2;
   t1=clock();
   //Scaling parameters for HF
@@ -1445,9 +1493,9 @@ double dyngap(double VJ, cx_model cx_choice){
   // double VJ;
   //cout << "In dyngap" << endl;
   //  VJ = Vright - Vleft;
-  switch (cx_choice){
+  switch (cx_choice){//Opposing gates model of gap junctions by Chen-Izu
     case 0:
-      //Parameters for homotypic gap junction model
+      //Parameters for homotypic Cx43 gap junction model
       A1=0.058;
       V1=61.3;
       A2=0.058;
@@ -1463,7 +1511,7 @@ double dyngap(double VJ, cx_model cx_choice){
       g_res=0.04;
       g_max=1.03;
       break;
-    case 2:
+    case 2://Parameters for homotypic Cx45 gap junciton model
       A1=0.110;
       V1 = 10.2;
       A2=0.110;
@@ -1475,6 +1523,204 @@ double dyngap(double VJ, cx_model cx_choice){
       break;
   }
   return (g_res + ((g_max - g_res)/(1 + exp(A1 * (-VJ - V1)) + exp(A2 * (VJ - V2)))));//Contingent gating model
+
+}
+double dyngap2(double VJ, cx_model cx_choice){
+  //State variables
+  double  n1H2H,n1L2H,n1H2L,n1L2L;
+  double n[4];
+  //Conductance of each channel state
+  double g1H2H,g1L2H,g1H2L,g1L2L;
+  //Voltage across each hemichannel
+  double V1H,V2H,V1L,V2L;
+  double V1H2H,V1L2L,V1H2L,V1L2H;
+  //Conductance of high and low hemichannel conductance state
+  double G1H,G2H,G1L,G2L;
+  //Rate constants (1/ms)
+  double alpha_1, beta_1, alpha_2, beta_2;
+  double a1, a2, a3, a4, b1, b2, b3, b4;
+  //Alpha and beta potential units (mV)
+  double V1a, V1b;
+  double V2a, V2b;
+
+  //cout << "In dyngap" << endl;
+  //  VJ = Vright - Vleft;
+  switch (cx_choice){
+    case 0:
+      //Parameters for homotypic Cx43 gap junction model
+
+      //voltage across the channels units: mV
+      V1H = 145.9;
+      V2H = 145.9;
+      V1L = 299.0;
+      V2L = 299.0;
+      //Conductance at high state and low state (pS)
+      G1H = 146.6;
+      G2H = 146.6;
+      G1L = 13.1;
+      G2L = 13.1;
+      //Rate constants unit: 1/ms
+      alpha_1 = 181.5e-3;
+      beta_1 = 0.007e-3;
+      alpha_2 = 181.5e-3;
+      beta_2 = 0.007e-3;
+
+      //alpha and beta potential units (mV)
+      V1a = 8.437;
+      V1b = 8.675;
+      V2a = 8.437;
+      V2b = 8.675;
+
+      break;
+    case 1:
+      //Cell on the left is Cx43, cell on the right is Cx45
+      //Parameters for homotypic Cx43 gap junction model
+
+      //voltage across the channels units: mV
+      V1H = 55.9;
+      V2H = 615;
+      V1L = 299.0;
+      V2L = 299.0;
+      //Conductance at high state and low state (pS)
+      G1H = 126.6;
+      G2H = 75;
+      G1L = 13.1;
+      G2L = 4;
+      //Rate constants unit: 1/ms
+      alpha_1 = 181.5e-3;
+      beta_1 = 0.007e-3;
+      alpha_2 = 181.5e-3;
+      beta_2 = 0.007e-3;
+
+      //alpha and beta potential units (mV)
+      V1a = 8.437;
+      V1b = 8.675;
+      V2a = 2.437;
+      V2b = 6.675;
+      break;
+    case 2:
+      //Parameters for homotypic Cx45 gap junction model
+      //voltage across the channels units: mV
+      V1H = 113.86;
+      V2H = 113.86;
+      V1L = 345.23;
+      V2L = 345.23;
+      //conductance at high state and low state (pS)
+      G1H = 57;
+      G2H = 57;
+      G1L = 4;
+      G2L = 4;
+      //Rate constants unit: 1/ms
+      alpha_1 = 0.2468;
+      beta_1 = 0.000469;
+      alpha_2 = 0.2468;
+      beta_2 = 0.000469;
+      //alpha and beta potential units (mV)
+      V1a = 4.6867;
+      V2a = 4.6867;
+      V1b = 75.9036;
+      V2b = 75.9036;
+      break;
+    default: 
+      break;
+  }
+
+  //nXY is the probabilities of the channels to be in the respective states
+  n1H2H=1.0;
+  n1L2H=0.0;
+  n1H2L=0.0;
+  n1L2L=0.0;
+
+  //gXY is the conductance of the channel state, it is VJ dependent
+  g1H2H = 0.0;
+  g1L2H = 0.0;
+  g1H2L = 0.0;
+  g1L2L = 0.0;
+
+  V1H2H=0.0;
+  V1L2H=0.0;
+  V1H2L=0.0;
+  V1L2L=0.0;
+
+  a1=0;
+  a2=0;
+  a3=0;
+  a4=0;
+  b1=0;
+  b2=0;
+  b3=0;
+  b4=0;
+
+  struct voltage_params params = {G1H, G2H, G1L, G2L, V1H, V2H, V1L, V2L, VJ};
+
+  FDF_hh.f = &voltagehh;
+  FDF_hh.df = &voltagehh_deriv;
+  FDF_hh.fdf = &voltagehh_fdf;
+  FDF_hh.params = &params;
+  V1H2H = rootSolver(FDF_hh,V1H2H);//1H2H
+  double V1H2H1 = V1H2H; 
+  double V1H2H2 = VJ + V1H2H1;
+
+  FDF_ll.f = &voltagell;
+  FDF_ll.df = &voltagell_deriv;
+  FDF_ll.fdf = &voltagell_fdf;
+  FDF_ll.params = &params;
+  V1L2L = rootSolver(FDF_ll,V1L2L);//1L2L
+  double V1L2L1 = V1L2L; 
+  double V1L2L2 = VJ + V1L2L1;
+
+  FDF_hl.f = &voltagehl;
+  FDF_hl.df = &voltagehl_deriv;
+  FDF_hl.fdf = &voltagehl_fdf;
+  FDF_hl.params = &params;
+  V1H2L = rootSolver(FDF_hl,V1H2L);//1H2L
+  double V1H2L1 = V1H2L; 
+  double V1H2L2 = VJ + V1H2L1;
+
+  FDF_lh.f = &voltagelh;
+  FDF_lh.df = &voltagelh_deriv;
+  FDF_lh.fdf = &voltagelh_fdf;
+  FDF_lh.params = &params;
+  V1L2H = rootSolver(FDF_lh,V1L2H); //1L2H
+  double V1L2H1 = V1L2H;
+  double V1L2H2 = VJ + V1L2H1;
+
+  // calculate homotypic conductances (pS)
+  g1H2H = (G1H * exp(-V1H2H1 / V1H)) * (G2H * exp(-V1H2H2 / V2H)) / ((G1H * exp(-V1H2H1 / V1H)) + (G2H * exp(-V1H2H2 / V2H)));
+  g1L2L = (G1L * exp(-V1L2L1 / V1L)) * (G2L * exp(-V1L2L2 / V2L)) / ((G1L * exp(-V1L2L1 / V1L)) + (G2L * exp(-V1L2L2 / V2L)));
+
+  // calculate heterotypic conductances (pS)
+  g1L2H = (G1L * exp(-V1L2H1 / V1L)) * (G2H * exp(-V1L2H2 / V2H)) / ((G1L * exp(-V1L2H1 / V1L)) + (G2H * exp(-V1L2H2 / V2H)));
+  g1H2L = (G1H * exp(-V1H2L1 / V1H)) * (G2L * exp(-V1H2L2 / V2L)) / ((G1H * exp(-V1H2L1 / V1H)) + (G2L * exp(-V1H2L2 / V2L)));
+
+
+  a1 = 2 * alpha_1 / (1 + exp(-V1L2H1 / V1a));
+  a2 = 2 * alpha_2 / (1 + exp(-V1H2L2 / V2a));
+  a3 = 2 * alpha_1 / (1 + exp(-V1L2L1 / V1a));
+  a4 = 2 * alpha_2 / (1 + exp(-V1L2L2 / V2a));
+  b1 = beta_1 * exp(-V1H2H1 / V1b);
+  b2 = beta_2 * exp(-V1H2H2 / V2b);
+  b3 = beta_1 * exp(-V1H2L1 / V1b);
+  b4 = beta_2 * exp(-V1L2H2 / V2b);
+
+  n[0] = n1H2H;
+  n[1] = n1L2H;
+  n[2] = n1H2L;
+  n[3] = n1L2L;
+
+  n[0] = n[0] + DT* ( -(b1 + b2) * n[0] + a1 * n[1] + a2 * n[2]);
+  n[1] = n[1] + DT* (b1 * n[0] - (a1 + b4) * n[1] + a4* n[3]);
+  n[2] = n[2] + DT* (b2 * n[0] - (a2 + b3) * n[2] + a3* n[3]);
+  n[3] = n[3] + DT* (b4 * n[1] + b3 * n[2] - (a3 + a4)* n[3]);
+
+  n1H2H = n[0];
+  n1L2H = n[1];
+  n1H2L = n[2];
+  n1L2L = n[3];
+ //Originals units are pS, multiply by 1e-3 to convert to nS
+  double pico_to_nano_siemens = 1e-3;
+
+  return (g1H2H * n1H2H + g1L2H * n1L2H + g1H2L * n1H2L + g1L2L * n1L2L)* pico_to_nano_siemens;
 
 }
 /*
@@ -1490,3 +1736,193 @@ double dyngap(double VJ, cx_model cx_choice){
    }
    }
    */
+
+double rootSolver(gsl_function_fdf FDF, double x){
+  int status;
+  int iter = 0, max_iter = 100;
+  double x0;
+
+  gsl_root_fdfsolver_set (SolverPtr, &FDF, x);//x is the initial guess
+  do
+  {
+    iter++;
+    status = gsl_root_fdfsolver_iterate (SolverPtr);//These functions perform a single iteration of the solver s. 
+    x0 = x;
+    x = gsl_root_fdfsolver_root (SolverPtr);//These functions return the current estimate of the root for the solver s.
+    status = gsl_root_test_delta (x, x0, 0, 1e-8);//search stopping algorithm
+
+    /* if (status == GSL_SUCCESS)
+       printf ("Converged:\n");
+       */
+  }
+  while (status == GSL_CONTINUE && iter < max_iter);
+  return x;
+}
+double voltagehh (double vhh, void *params)
+{
+  struct voltage_params *p  = (struct voltage_params *) params;
+
+  double G1H = p->G1H;
+  double G2H = p->G2H;
+  double V1H = p->V1H;
+  double V2H = p->V2H;
+  double VJ = p->VJ;
+
+  return vhh + VJ / (G1H / G2H * exp((vhh * (V1H - V2H) + VJ * V1H) / (V1H * V2H)	+ 1));
+  //   return vhh	+ (VJ / (G1H / G2H * exp((vhh * (V1H - V2H) + V1H * VJ) / (V2H * V1H)) + 1));
+
+}
+double voltagehh_deriv (double vhh, void *params)
+{
+  struct voltage_params *p  = (struct voltage_params *) params;
+
+  double G1H = p->G1H;
+  double G2H = p->G2H;
+  double V1H = p->V1H;
+  double V2H = p->V2H;
+  double VJ = p->VJ;
+
+  return 1 - 1 * VJ * G2H * (V1H - V2H)* exp(-(VJ * V2H + vhh * (V1H - V2H))/(V1H * V2H) - 1)/(G1H * V1H * V2H);
+  //return (VJ * G1H * G2H * (V2H - V1H) * exp((VJ * V1H + vhh * (V1H + V2H))/(V1H * V2H)))/(V1H * V2H * pow(G1H * exp((VJ + vhh)/V2H) + G2H * exp(vhh/V1H), 2)) + 1;
+
+}
+void voltagehh_fdf (double vhh, void *params, double *_vhh, double *_dvhh)
+{
+  //since it is better to calculate both the function and its derivative at the same time
+  //this function combines the calculation derivative is in parameter _dvhl
+  struct voltage_params *p  = (struct voltage_params *) params;
+
+  double G1H = p->G1H;
+  double G2H = p->G2H;
+  double V1H = p->V1H;
+  double V2H = p->V2H;
+  double VJ = p->VJ;
+
+  *_vhh = vhh + VJ / (G1H / G2H * exp((vhh * (V1H - V2H) + VJ * V1H) / (V1H * V2H)	+ 1));
+  *_dvhh = 1 - 1 * VJ * G2H * (V1H - V2H)* exp(-(VJ * V2H + vhh * (V1H - V2H))/(V1H * V2H) - 1)/(G1H * V1H * V2H);
+  // *_vhh  =   vhh	+ (VJ / (G1H / G2H * exp((vhh * (V1H - V2H) + V1H * VJ) / (V2H * V1H)) + 1));
+  // *_dvhh =  (VJ * G1H * G2H * (V2H - V1H) * exp((VJ * V1H + vhh * (V1H + V2H))/(V1H * V2H)))/(V1H * V2H * pow(G1H * exp((VJ + vhh)/V2H) + G2H * exp(vhh/V1H), 2)) + 1;
+
+}
+double voltagell (double vll, void *params)
+{
+  struct voltage_params *p  = (struct voltage_params *) params;
+
+  double G1L = p->G1L;
+  double G2L = p->G2L;
+  double V1L = p->V1L;
+  double V2L = p->V2L;
+  double VJ = p->VJ;
+
+  return vll + VJ / (G1L / G2L * exp((vll * (V1L - V2L) + VJ * V1L) / (V1L * V2L)	+ 1));
+}
+double voltagell_deriv (double vll, void *params)
+{
+  struct voltage_params *p  = (struct voltage_params *) params;
+
+  double G1L = p->G1L;
+  double G2L = p->G2L;
+  double V1L = p->V1L;
+  double V2L = p->V2L;
+  double VJ = p->VJ;
+
+  return 1 - 1 * VJ * G2L * (V1L - V2L)* exp(-(VJ * V2L + vll * (V1L - V2L))/(V1L * V2L) - 1)/(G1L * V1L * V2L);
+}
+
+void voltagell_fdf (double vll, void *params, double *_vll, double *_dvll)
+{
+
+  struct voltage_params *p  = (struct voltage_params *) params;
+
+  double G1L = p->G1L;
+  double G2L = p->G2L;
+  double V1L = p->V1L;
+  double V2L = p->V2L;
+  double VJ = p->VJ;
+
+  *_vll =  vll + VJ / (G1L / G2L * exp((vll * (V1L - V2L) + VJ * V1L) / (V1L * V2L)	+ 1));
+  *_dvll = 1 - 1 * VJ * G2L * (V1L - V2L)* exp(-(VJ * V2L + vll * (V1L - V2L))/(V1L * V2L) - 1)/(G1L * V1L * V2L);
+}
+
+double voltagehl (double vhl, void *params)
+{
+
+  struct voltage_params *p  = (struct voltage_params *) params;//This is typecasting
+
+  double G1H = p->G1H;
+  double G2L = p->G2L;
+  double V1H = p->V1H;
+  double V2L = p->V2L;
+  double VJ = p->VJ;
+
+
+  return vhl + VJ / (G1H / G2L * exp((vhl * (V1H - V2L) + VJ * V1H) / (V1H * V2L)	+ 1));
+}
+double voltagehl_deriv (double vhl, void *params)
+{
+  struct voltage_params *p  = (struct voltage_params *) params;
+
+  double G1H = p->G1H;
+  double G2L = p->G2L;
+  double V1H = p->V1H;
+  double V2L = p->V2L;
+  double VJ = p->VJ;
+
+
+  return 1 - 1 * VJ * G2L * (V1H - V2L)* exp(-(VJ * V2L + vhl * (V1H - V2L))/(V1H * V2L) - 1)/(G1H * V1H * V2L);
+}
+
+void voltagehl_fdf (double vhl, void *params, double *_vhl, double *_dvhl)
+{
+  struct voltage_params *p  = (struct voltage_params *) params;
+
+  double G1H = p->G1H;
+  double G2L = p->G2L;
+  double V1H = p->V1H;
+  double V2L = p->V2L;
+  double VJ = p->VJ;
+
+  *_vhl = vhl + VJ / (G1H / G2L * exp((vhl * (V1H - V2L) + VJ * V1H) / (V1H * V2L)	+ 1));
+  *_dvhl =  1 - 1 * VJ * G2L * (V1H - V2L)* exp(-(VJ * V2L + vhl * (V1H - V2L))/(V1H * V2L) - 1)/(G1H * V1H * V2L);
+}
+
+double voltagelh (double vlh, void *params)
+{
+  struct voltage_params *p  = (struct voltage_params *) params;
+
+  double G2H = p->G2H;
+  double G1L = p->G1L;
+  double V2H = p->V2H;
+  double V1L = p->V1L;
+  double VJ = p->VJ;
+
+  return vlh	+ (VJ / (G1L / G2H * exp((vlh * (V1L - V2H) + V1L * VJ) / (V2H * V1L)) + 1));
+}
+double voltagelh_deriv (double vlh, void *params)
+{
+  struct voltage_params *p  = (struct voltage_params *) params;
+
+  double G2H = p->G2H;
+  double G1L = p->G1L;
+  double V2H = p->V2H;
+  double V1L = p->V1L;
+  double VJ = p->VJ;
+
+
+  return (VJ * G1L * G2H * (V2H - V1L) * exp((VJ * V1L + vlh * (V1L + V2H))/(V1L * V2H)))/(V1L * V2H * pow(G1L * exp((VJ + vlh)/V2H) + G2H * exp(vlh/V1L), 2)) + 1;
+}
+
+void voltagelh_fdf (double vlh, void *params, double *_vlh, double *_dvlh)
+{
+  struct voltage_params *p  = (struct voltage_params *) params;
+
+  double G2H = p->G2H;
+  double G1L = p->G1L;
+  double V2H = p->V2H;
+  double V1L = p->V1L;
+  double VJ = p->VJ;
+
+
+  *_vlh = vlh	+ (VJ / (G1L / G2H * exp((vlh * (V1L - V2H) + V1L * VJ) / (V2H * V1L)) + 1));
+  *_dvlh = (VJ * G1L * G2H * (V2H - V1L) * exp((VJ * V1L + vlh * (V1L + V2H))/(V1L * V2H)))/(V1L * V2H * pow(G1L * exp((VJ + vlh)/V2H) + G2H * exp(vlh/V1L), 2)) + 1;
+}

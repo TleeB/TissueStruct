@@ -1,3 +1,12 @@
+
+
+// Author: Tashalee Brown (July 2013)
+//v1.0 Code produces a 2D grid of user defined size which contains user defined alpha for the ratio
+//of fib to myocytes. Whether a given cell is a fibroblast or myocyte is random.
+//Also produces list of myocytes and fibroblasts and all neighbors. Also produces list of cells to be stimulated.
+//v1.1 Stimulated cells moved outside of grid file to separate structure from simulation
+
+
 #include <iostream>
 #include <cstdlib>
 #include <cstdio>
@@ -9,12 +18,6 @@
 
 //Vectors to hold neighbors
 #include <vector>
-
-//v1.0 Code produces a 2D grid of user defined size which contains user defined alpha for the ratio
-//of fib to myocytes. Whether a given cell is a fibroblast or myocyte is random.
-//Also produces list of myocytes and fibroblasts and all neighbors. Also produces list of cells to be stimulated.
-//v1.1 Stimulated cells moved outside of grid file to separate structure from simulation
-
 using namespace std;
 int length_myo = 5;
 int length_fib = 1;
