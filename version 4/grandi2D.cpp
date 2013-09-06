@@ -30,12 +30,11 @@ using namespace std;
 //Model characteristics
 const double epi = 0;//Cell type of model is originally endo
 const double HF = 0; //To simulate the heart failure model use HF=1
-const bool DynamicGapON = false;
-const char DevelopmentalStage = 'l';
+const bool DynamicGapON = true;
 
 //Global stimulation parameters
-int num_stim=1;
-int stim_equil = 0;
+int num_stim=2;
+int stim_equil = 1;
 int file_filter = 1000;
 double stim_mag=19.5;
 double stim_dur=3;
@@ -49,8 +48,6 @@ char output_file_name3[30] = "params.dat";
 
 const char *neighbors_myo_file = "neighbors_myo_file.dat";
 const char *neighbors_fib_file = "neighbors_fib_file.dat";
-//char stim_myo_file[30] = "stim_myo_file.dat";
-//char stim_fib_file[30] = "stim_fib_file.dat";
 const char *grid_file = "grid_file.dat";
 
 //Declaration of scaling parameters
@@ -66,48 +63,6 @@ double scaleSERCA;
 double scaleleak;
 double ec50SR;
 
-//Scaling paramters and shifting parameters
-double RaINa;
-double myCoefTauH;
-double myCoefTauJ;
-double RaICaL;
-double Vh_dCa;
-double kCa;
-double ampICaLDinf;
-double KtaufCa;
-double myVhfCaL;
-double myKfCaL;
-double ampICaLFinf;
-double myKtauF;
-double myTauFShift;
-double myShiftFCaInf;
-double Vth_ICaL;
-double RaICaT;
-double RaINaCa;
-double alfa;
-double RaINaK;
-double RaIK1;
-double myShiftK1;
-double RaIKr;
-double mySlope;
-double myShift;
-double RaIKs;
-double RaIto;
-double myShiftItoR;
-double mySlopeItoR;
-double myShiftItoS;
-double mySlopeItoS;
-double myConstTauR;
-double myConstTauS;
-double RaIup;
-double RaIrel;
-double RaIleak;
-double RaIf;
-double myIfconst;
-double RaCm;
-double RaICap;
-double RaIKp;
-double RaIback;
 
 //Function to calculate PDE
 void PDE(vector<vector<double> > &, vector<vector<double> > &, vector <vector<int> >, bool);
@@ -127,10 +82,12 @@ enum cx_model{
 double dyngap(double, cx_model);
 //Function for dynamic gap junctions
 double dyngap2(double, cx_model);
+//Function for dynamic gap junctions
+double dyngap1(double, cx_model)
 
-struct voltage_params{
-  double G1H, G2H, G1L, G2L, V1H, V2H, V1L, V2L, VJ;
-};
+  struct voltage_params{
+    double G1H, G2H, G1L, G2L, V1H, V2H, V1L, V2L, VJ;
+  };
 //Header for root solving
 const gsl_root_fdfsolver_type *TypePtr;
 gsl_root_fdfsolver *SolverPtr;
@@ -155,9 +112,6 @@ double voltagelh (double vlh, void *params);
 double voltagelh_deriv (double vlh, void *params);
 void voltagelh_fdf (double vlh, void *params, double *_vlh, double *_dvlh);
 
-
-
-
 //Function prototypes
 //void calcAPD(double, double, int);
 
@@ -170,7 +124,6 @@ int main(){
   SolverPtr = gsl_root_fdfsolver_alloc (TypePtr);
 
   cout <<"\n Initialized GSL Root Solver: "<<gsl_root_fdfsolver_name(SolverPtr)<<endl;
-
 
   clock_t t1, t2;
   t1=clock();
@@ -199,124 +152,6 @@ int main(){
     scaleSERCA=1.;
     scaleleak=1.;
   }
-  //Scaling parameters of the developmental stage
-  switch(DevelopmentalStage){
-    case 'e':
-      RaINa=0.038;
-      myCoefTauH =2.8;
-      myCoefTauJ = 1;
-      RaICaL=0.25;
-      Vh_dCa=12.5;
-      kCa=12.5;
-      ampICaLDinf = 1;
-      KtaufCa=1433;   // [1/mM]  Altamirano & Bers 2007
-      myVhfCaL = 20;
-      myKfCaL = 7;
-      ampICaLFinf = 1;
-      myKtauF = 1;
-      myTauFShift = 0;
-      myShiftFCaInf = -0.11e-3;  //[mM] 
-      Vth_ICaL = -0.060;
-      RaICaT =0.25;
-      RaINaCa=1.750e1;
-      alfa=0.8;
-      RaINaK=0.7;
-      RaIK1=0.05*2.67/3;
-      myShiftK1 = -15;//Converted to mV
-      RaIKr=3;
-      mySlope = 1;
-      myShift = 0;
-      RaIKs=0.1;
-      RaIto=0.1673*0.4903*0.8;
-      myShiftItoR = -25;
-      mySlopeItoR = 0.3;
-      myShiftItoS = 0;
-      mySlopeItoS = 1;
-      myConstTauR= 1;
-      myConstTauS= 1;
-      RaIup=0.4/3;
-      RaIrel=0.2/18;
-      RaIleak=0.1/18;
-      RaIf=0.5389;
-      myIfconst = 1;
-      RaCm=0.22162;
-      RaICap=1;
-      RaIKp=0;
-      RaIback=0.2;
-      break;
-    case 'l':
-      RaINa=1;    // Itoh
-      myCoefTauH = 2.8;
-      myCoefTauJ = 1;
-      RaICaL=0.422;
-      Vh_dCa=16;
-      kCa=12.8;
-      ampICaLDinf = 1;
-      KtaufCa=1433;   // [1/mM]  Altamirano & Bers 2007
-      myVhfCaL = 20;
-      myKfCaL = 7;
-      ampICaLFinf = 1;
-      myKtauF = 1;
-      myTauFShift = 0;
-      myShiftFCaInf = -0.12e-3;
-      Vth_ICaL = 0;
-      RaICaT =0.05;
-      RaINaCa=1.824e+01;
-      alfa=0.38;
-      RaINaK=0.83;
-      RaIK1=0.4*0.05*2.67*4;
-      myShiftK1 = -15;//Converted to mV 
-      RaIKr=1.4;
-      mySlope = 1;
-      myShift = 0;
-      RaIKs=0.1;
-      RaIto=0.3754*0.4903*0.9;
-      myShiftItoR = -25;
-      mySlopeItoR = 0.3;
-      myShiftItoS = 0;
-      mySlopeItoS = 1;
-      myConstTauR= 1;
-      myConstTauS= 1;
-      RaIup=0.33;
-      RaIrel=0.4;
-      RaIleak=0.3*1;
-      RaIf=0.23;
-      RaCm=0.17838;
-      RaICap=1;
-      RaIKp=0;
-      RaIback=1;
-      break;
-    case 'a':
-      RaINa = 1;
-      myCoefTauH  =  1;
-      myCoefTauJ  =  1;
-      RaICaL = 1;
-      Vh_dCa = -5;
-      kCa = 7.5;
-      RaINaCa = 1;
-      alfa = 2.5;
-      RaIK1 = 1;
-      myShiftK1  =  0;
-      RaIKr = 1;
-      mySlope  =  1;
-      myShift  =  0;
-      RaIKs = 1;
-      RaIto = 1;
-      RaIup = 1;
-      RaIrel = 1;
-      RaIleak = 1;
-      RaICaT = 0;//added, this scaling parameter was left out in the Paci model for the adult phenotype
-      RaIf = 0;
-      RaCm = 1;
-      RaINaK = 1;
-      RaICap = 1;
-      RaIKp = 1;
-      RaIback = 1;
-      break;
-    default: cout <<"No developmental stage selected."<<endl;
-             break;
-  }
-
 
   FILE *output, *output2, *output3;//, *output4;
   output = fopen(output_file_name, "w");
@@ -591,129 +426,35 @@ int main(){
   double I_K_tot, I_Ca_tot_junc, I_Ca_tot_sl, I_to;
   float r;
 
-  //hESCM parameters
+  //Fibroblast parameters
   //---------------------------------------------------------------------------------------------------
-  //// Constants
-  //double R=8314.472;   // [J/millimoles/K] Gas constant   duplicate declaration of the same value
-  double F=96485.3415; // [C/mol]	  Faraday constant
-  double T=310.0;      // [K]       Temperature
 
-  //// Buffering
-  double Bufc=0.25;   // [mM] total cytoplasmic buffer concentration
-  double Kbufc=0.001;  // [mM] Cai half saturation constant
-  double Bufsr=10;     // [mM] total sarcoplasmic buffer concentration
-  double Kbufsr=0.3;   // [mM] CaSR half saturation constant
+  double C_fib  = 6.3; //cell capacitance in pF
+  double GKv = 0.25; //The maximal conductance of IKv_fib in nS/pF or uS/nF
+  double GK1_fib = 0.4822; //The maximal conductance of this inward rectifying K+ current in nS/pF of uS/nF
+  double B     = -200; //The empirically determined constant
+  double V_rev = -150; //mV The reversal potential of the electrogenic pump
 
-  double Nao_naca = Nao;
+  //K_mK and KmNa are binding constants
+  double KmK_fib  = 1.0; //mM
+  double KmNa_fib = 11.0; //mM
+  double Max_INaK = 2.002; //The maximum current generated by INaK_fib in pA/pF or nA/nF
+  double GbNa_fib = 0.0095; //The leak conductance in nS/pF of uS/nF
 
-  //// Intracellular Ionic concentrations
-  // // Pre-dialysis
-  double Ki=140;      // [mM]  & 140 in TT04
-  double Nai=7;    // [mM]
+  // Initial parameters
+  double Nai_fib  = 8.0; //CellML from Dr. Fink
+  double ENa_fib = 70.0; //millivolts
+  double EK_fib = -87.0; //millivolts
+  double s_inf_fib, tau_s_fib;
+  double r_inf_fib, tau_r_fib;
+  double alpha_K1_fib, beta_K1_fib;
+  double IK1_fib, IKv_fib, INaK_fib, IbNa_fib, Itotal_fib, I_stim_fib;
 
-  //// Intracellular Volumes
-  double Vc=16.404*RaCm;
-  double Vsr_hesc=1.094*RaCm;
-  double capacitance=0.185*1000*RaCm;
-
-  //// Flag to choose between epi, endo and M cell types
-  int epi=1;
-  int endo=0;
-  int Mcell=0;
-
-  //// Ionic Currents
-  //// Fast Na+ Current
-  double Vh_h=-73;
-  double k_h=5.6;
-  double Gnamax=14.838*RaINa; // [nS/pF] maximal INa conductance
-
-  //// If Current
-  double Gf=0.090926*RaIf;
-  //double x0=-89.73015*Rax0;
-  //double dx=11.7335*Radx;
-
-  //// L-type Ca2+ Current
-  double GCaL=0.000175*RaICaL;  // [m^3/F/s] maximal ICaL conductance
-
-  //// T-type Ca2+ Current
-  double GICaT = 0.1832*RaICaT; //[S/F]
-
-  //// Transient Outward Current
-  double GItoepi=0.294*RaIto;   // [S/F] maximal ITo conductance
-  double GItoendo=73;   // [S/F] maximal ITo conductance
-  double GItoMcell=294; // [S/F] maximal ITo conductance
-  int soepi=1;
-  int soendo=1;
-
-  //// IKs
-  double GKsepi   =0.157*RaIKs; //245; //[S/F] maximal IKs conductance
-  double GKsendo  =157; //245;// [S/F] maximal IKs conductance
-  double GKsMcell =40; //62;// [S/F] maximal IKs conductance
-  double pKNa=0.03;   // [ ]
-
-  //// IKr
-  double GKr=0.096*sqrt(Ko/5.4)*RaIKr; //GKr=96 nS/pF maximal IKr conductance
-  double Q=2.3;
-  double L0=0.025;
-  double Kc=0.58e-3;
-  double Ka=2.6e-3;
-
-  //// Inward Rectifier K+ Current
-  double gK1max=5.405*sqrt(Ko/5.4)*RaIK1; // maximal IK1 conductance
-
-  //// Na+/Ca2+ Exchanger Current
-  double knaca=1000*RaINaCa;  // [pA/pF] maximal INaCa
-  double KmNai_hesc=87.5;  // [mM] Nai half saturation constant
-  double KmCa=1.38;   // [mM] Cai half saturation constant
-  double ksat_hesc=0.1;    // [dimensionless]  saturation factor for INaCa
-  double n=0.35;      // [dimensionless]  voltage dependence parameter
-
-  //// Na+/K+ Pump Current
-  double knak=1.362*RaINaK;  // [pA/pF] maximal INaK
-  double KmK=1;       // [mM] Ko half saturation constant
-  double KmNa=40;     // [mM] Nai half saturation constant
-
-  //// IpCa
-  double GpCa=0.825*RaICap;    // [pA/pF] maximal IpCa
-  double kpca=0.0005;   // [mM]  Cai half saturation constant
-
-  //// IpK
-  double GpK=0.0146*RaIKp;    // [nS/F] maximal IpK conductance
-
-  //// Background Currents
-  double GbNa=0*0.29*RaIback;   // [nS/pF] maximal IbNa conductance
-  double GbCa=0.000592*RaIback;  // [nS/pF] maximal IbCa conductance
-
-  //// Calcium Dynamics
-  //// Ileak
-  double Vleak=0.00008*RaIleak; // [1/ms] maximal Ileak =0.00008/s
-
-  //// Irel
-  double arel=0.016464;   // [mM/ms] maximal CaSR-dependent Irel
-  double brel=0.25;     // [mM] CaSR half saturation constant
-  double crel=0.008232;    // [mM/ms] maximal CaSR-independent Irel
-
-  //// Iup
-  double Vmaxup=0.000425*RaIup; //[mM/ms]   // 0.000425;   // [mM/ms] maximal Iup
-  double Kup=0.00025;//0.00025;    // [mM] half saturation constant
-
-  //Gating parameters
-  double alpha_K1, beta_K1, x_K1_inf;
-  double alpha_m, beta_m, tau_m, m_inf, alpha_h, beta_h, tau_h, h_inf, alpha_j, beta_j, tau_j, j_inf;
-  double alpha_d, beta_d, gamma_d, tau_d, d_inf, f_inf, tau_f, g_inf, tau_g, constg;
-  double f_ca_inf, tau_f_ca, constf_ca, r_inf, tau_r, s_inf, tau_s, alpha_xs, beta_xs, xs_inf, tau_xs;
-  double alpha_xr1, beta_xr1, xr1_inf, tau_xr1, alpha_xr2, beta_xr2, xr2_inf, tau_xr2, xf_inf, tau_xf;
-  double dCaT_inf, tau_dCaT, fCaT_inf, tau_fCaT;
-  double INa, ICaL, Ito, IKr, IKs, IK1, INaCa, INaK, IpCa, IpK, IbNa, IbCa, Istim,If,ICaT, Itotal;
-  double Ileak, Iup, Irel, CaBuf, CaCSQN, CaCurrent, CaSRCurrent, bjsr, cjsr, bc, cc;
-
-  //Nerst potentials
-  double RTONF, Ek, Ena, Eks, Eca, Ef;
-
+  //----------------------------------------------------------------------------------------------------
   vector< vector< double > > y(CELLS_myo, vector< double >( 42 ) );
   vector< vector< double > > ydot(CELLS_myo, vector< double >( 42 ) );
-  vector< vector< double > > yh(CELLS_fib, vector< double >( 18 ) );
-  vector< vector< double > > yhdot(CELLS_fib, vector< double >( 18 ) );
+  vector< vector< double > > yf(CELLS_fib, vector< double >( 18 ) );
+  vector< vector< double > > yfdot(CELLS_fib, vector< double >( 18 ) );
   //cout << "vectors loaded"<<endl;
 
   //Initialize myocyte variables
@@ -769,27 +510,11 @@ int main(){
     y[node][40]=2.8110845e-3;
     y[node][41]=1.6274168e-1;
   }
-  //Initialize hESC variables
+  //Initialize fib variables
   for (int node = 0; node<CELLS_fib; node++){
-    V_fib[node] = -70;
-    yh[node][0]= -70;//V
-    yh[node][1]= 0.0002;//Cai
-    yh[node][2]=  0.2;//CaSR
-    yh[node][3]= 0.;//m
-    yh[node][4]= 0.75;//h
-    yh[node][5]= 0.75;//j
-    yh[node][6]= 0.;//xr1
-    yh[node][7]= 1.;//xr2
-    yh[node][8]= 0.;//xs
-    yh[node][9]= 0.;//r
-    yh[node][10]= 1.;//s
-    yh[node][11]= 0.;//d
-    yh[node][12]= 1.;//f
-    yh[node][13]= 1.;//f_ca
-    yh[node][14]= 1.;//g
-    yh[node][15]= 0.;//dCaT
-    yh[node][16]= 1.;//fCat
-    yh[node][17]= 0.1;//xf
+    yf[node][0] = -49.21; //CellML from Dr. Fink
+    yf[node][1] = 0.0; //r gate
+    yf[node][2] = 1.0; //s gate
   }
   //Local pacing & stimulus parameters
   int count, bcl_int, stim_dur_int;
@@ -1114,272 +839,64 @@ int main(){
         fprintf(output,"\n");
         //  fprintf(output3,"\n");
       }
-      //Start of the hESCM dimensions
+      //Start of the fib dimensions
       ///////////////////////////////////////////////////////////////
       for (int x = 0; x<CELLS_fib; x++){
-        //Reversal potentials
-        Eca = 0.5*(R*T/F)*log(Cao/yh[x][1]);
-        Ek = (R*T/F)*log(Ko/Ki);
-        Ena = (R*T/F)*log(Nao/Nai);
-        Eks = (R*T/F)*(log((Ko+pKNa*Nao)/(Ki+pKNa*Nai)));
-        //INa m gate/////////////////////////////////////////////////
-        alpha_m = 1/(1+exp((-60-yh[x][0])/5));
-        beta_m = 0.1/(1+exp((yh[x][0]+35)/5))+0.1/(1+exp((yh[x][0]-50)/200));
-        tau_m = alpha_m*beta_m;
-        m_inf = 1/((1+exp((-56.86-yh[x][0])/9.03))*(1+exp((-56.86-yh[x][0])/9.03)));
-        yh[x][3] = m_inf-(m_inf-yh[x][3])*exp(-DT/(tau_m));
-        //yhdot[x][3] = (m_inf - yh[x][3])/tau_m;
-        //INa, h gate //////////////////////////////////////////////
-        switch(DevelopmentalStage){
-          case 'e': h_inf = pow((1/(1+exp((yh[x][0]-Vh_h)/k_h))),0.5);//yh[x][0]h_h = -73, k_h = 5.6
-                    break;
-          case 'l': //this case proceeds to the adult phenotype
-          case 'a': h_inf = 1/((1+exp((yh[x][0]+71.55)/7.43))*(1+exp((yh[x][0]+71.55)/7.43)));
-                    break;
-        }
-        if( yh[x][0] < -40. ){
-          alpha_h = (0.057*exp(-(yh[x][0]+80)/6.8));
-          beta_h = (2.7*exp(0.079*yh[x][0])+(3.1e5)*exp(0.3485*yh[x][0]));
-        }
-        else{
-          alpha_h = 0.;
-          beta_h = ((0.77/(0.13*(1+exp(-(yh[x][0]+10.66)/11.1)))));
-        }
-        tau_h = myCoefTauH/(alpha_h+beta_h);//myCoefTauH = 2.8
-        yh[x][4] = h_inf-(h_inf-yh[x][4])*exp(-DT/(tau_h));
-        //yhdot[x][4] = (h_inf - yh[x][4])/tau_h;
-        //INa j gate///////////////////////////////////////////////////////////////
-        //j_inf varies depending on the  cell type////////////////////////////////
-        switch(DevelopmentalStage){
-          case 'e': j_inf = pow((1/(1+exp((yh[x][0]-Vh_h)/k_h))),0.5);
-                    break;
-          case 'l'://this case proceeds to adult phenotype
-          case 'a': j_inf = 1/((1+exp((yh[x][0]+71.55)/7.43))*(1+exp((yh[x][0]+71.55)/7.43)));
-                    break;
-        }
-        if( yh[x][0] < -40. ){
-          alpha_j = (-(25428)*exp(0.2444*yh[x][0])-(0.000006948)*exp(-0.04391*yh[x][0]))*(yh[x][0]+37.78)/(1+exp(0.311*(yh[x][0]+79.23)));
-          beta_j = ((0.02424*exp(-0.01052*yh[x][0])/(1+exp(-0.1378*(yh[x][0]+40.14)))));
-        }
-        else{
-          alpha_j = 0.0;
-          beta_j = ((0.6*exp((0.057)*yh[x][0])/(1+exp(-0.1*(yh[x][0]+32)))));
-        }
-        tau_j = myCoefTauJ/(alpha_j+beta_j);
-        yh[x][5] = j_inf-(j_inf-yh[x][5])*exp(-DT/tau_j);
-        //yhdot[x][5] = (j_inf - yh[x][5])/tau_j;
-        //IKr, Xr1 gate/////////////////////////////////////////////////////// 
-        //parameter added for rapid delayed rectifier current
-        xr1_inf = 1/(1+exp((((-R*T/F/Q*log(1/pow(((1+Cao*0.001/Kc)/(1+Cao*0.001/Ka)),4)/L0))-26)-(yh[x][0]-myShift))/7));
-        alpha_xr1 = 450/(1+exp((-45-(yh[x][0]-myShift))/(10)));
-        beta_xr1 = 6/(1+exp(((yh[x][0]-myShift)-(-30))/11.5));
-        tau_xr1 = alpha_xr1*beta_xr1;
-        yh[x][6] = xr1_inf-(xr1_inf-yh[x][6])*exp(-DT/tau_xr1);
-        //yhdot[x][6] = (xr1_inf - yh[x][6])/tau_xr1;
-        //IKr, Xr2 gate////////////////////////////////////////////////////// 
-        xr2_inf = 1/(1+exp(((yh[x][0]-myShift)-(-88))/24));
-        alpha_xr2 = 3/(1+exp((-60-(yh[x][0]-myShift))/20));
-        beta_xr2 = 1.12/(1+exp(((yh[x][0]-myShift)-60)/20));
-        tau_xr2 = alpha_xr2*beta_xr2;
-        yh[x][7] = xr2_inf-(xr2_inf-yh[x][7])*exp(-DT/tau_xr2);
-        //yhdot[x][7] = (xr2_inf - yh[x][7])/tau_xr2;
-        //IKs, Xs gate/////////////////////////////////////////////////////// 
-        xs_inf = 1/(1+exp((-5-yh[x][0])/14));
-        alpha_xs = 1100/(sqrt(1+exp((-10-yh[x][0])/6)));
-        beta_xs = 1/(1+exp((yh[x][0]-60)/20));
-        tau_xs = alpha_xs*beta_xs;
-        yh[x][8] = xs_inf-(xs_inf-yh[x][8])*exp(-DT/tau_xs);
-        //yhdot[x][8] = (xs_inf - yh[x][8])/tau_xs;
-        //Ito, r gate/////////////////////////////////////////////////////// 
-        r_inf = 1/(1+exp((-yh[x][0]+20+myShiftItoR)/(6*mySlopeItoR)));
-        tau_r = myConstTauR*(9.5*exp(-pow((yh[x][0]+40),2)/1800)+0.8);
-        yh[x][9] = r_inf-(r_inf-yh[x][9])*exp(-DT/tau_r);
-        //yhdot[x][9] = (r_inf - yh[x][9])/tau_r;
-        //Ito, s gate/////////////////////////////////////////////////////// 
-        s_inf = 1/(1+exp((yh[x][0]+20+myShiftItoS)/(5*mySlopeItoS)));
-        tau_s = myConstTauS*(85*exp(-(yh[x][0]+45)*(yh[x][0]+45)/320)+5/(1+exp((yh[x][0]-20)/5))+3);
-        yh[x][10] = s_inf-(s_inf-yh[x][10])*exp(-DT/tau_s);
-        //yhdot[x][10] = (s_inf - yh[x][10])/tau_s;
-        //ICaL, d gate, and Irel d gate/////////////////////////////////////
-        alpha_d = 1.4/(1+exp((-35-yh[x][0])/13))+0.25;
-        beta_d = 1.4/(1+exp((yh[x][0]+5)/5));
-        gamma_d = 1/(1+exp((50-yh[x][0])/20));
-        tau_d = alpha_d*beta_d+gamma_d;
-        d_inf = 1/(1+exp(-(yh[x][0]-Vh_dCa)/kCa));
-        yh[x][11] = d_inf-(d_inf-yh[x][11])*exp(-DT/tau_d);
-        //yhdot[x][11]=(d_inf - yh[x][11])/d_inf;
-        //ICaL, f gate//////////////////////////////////////////////////////
-        f_inf = 1/(1+exp((yh[x][0]+myVhfCaL)/myKfCaL));
-        switch(DevelopmentalStage){
-          case 'e': tau_f = 100.;
-                    break;
-          case 'l'://this case proceeds to adult phenotype
-          case 'a':
-                    if(f_inf > yh[x][12]){ tau_f = (1125*exp(-((yh[x][0]-myTauFShift)+27)*((yh[x][0]-myTauFShift)+27)/240)+80+165/(1+exp((25-(yh[x][0]-myTauFShift))/10)))*(1+KtaufCa*(yh[x][1]-.5e-4));}
-                    else {tau_f = (1125*exp(-((yh[x][0]-myTauFShift)+27)*((yh[x][0]-myTauFShift)+27)/240)+80+165/(1+exp((25-(yh[x][0]-myTauFShift))/10)));}
-                    break;
-        }
-        yh[x][12] = f_inf-(f_inf-yh[x][12])*exp(-DT/tau_f);
-        //yhdot[x][12]=(f_inf - yh[x][12])/tau_f;
-        //ICaL, fCa gate/////////////////////////////////////////////////////// 
-        switch(DevelopmentalStage){
-          case 'e':     f_ca_inf = (1/(1+(pow(((yh[x][1]-myShiftFCaInf)/0.000325),8)))+0.1/(1+exp(((yh[x][1]-myShiftFCaInf)-0.0005)/0.0001))+0.2/(1+exp(((yh[x][1]-myShiftFCaInf)-0.00075)/0.0008))+0.23)/1.46;
-                        break;
-          case 'l'://this case proceeds to adult phenotype    
-          case 'a': f_ca_inf = (1/(1+(pow((yh[x][1]/0.0006),8)))+0.1/(1+exp((yh[x][1]-0.0009)/0.0001))+0.3/(1+exp((yh[x][1]-0.00075)/0.0008)))/1.3156;
-                    break;
-        }
-        tau_f_ca = 2.0;//ms
-        if ( yh[x][0] > -60.0 ){
-          if ( f_ca_inf > yh[x][13] ) { yhdot[x][13] = yh[x][13];}
-          else { 
-            yh[x][13] = f_ca_inf-(f_ca_inf-yh[x][13])*exp(-DT/tau_f_ca);
-            //yhdot[x][13]=(f_ca_inf - yh[x][13])/tau_f_ca;
-          }
-        }
-        else { 
-          yh[x][13] = f_ca_inf-(f_ca_inf-yh[x][13])*exp(-DT/tau_f_ca);
-          //yhdot[x][13]=(f_ca_inf - yh[x][13])/tau_f_ca;
-        }
-        //Irel, g gate////////////////////////////////////////////////////////// 
-        tau_g = 2.0;//units in ms
-        if (yh[x][1]<=0.00035) {g_inf = (1/(1+pow((yh[x][1]/0.00035),6)));}
-        else { g_inf = (1/(1+pow((yh[x][1]/0.00035),16)));}
-        if ( yh[x][0] > -60.0 ){
-          if (g_inf > yh[x][14]) {yhdot[x][14]= yh[x][14];}
-          else { 
-            yh[x][14] = g_inf-(g_inf-yh[x][14])*exp(-DT/tau_g);
-            //yhdot[x][14]=(g_inf - yh[x][14])/tau_g;
-          }
-        }
-        else { 
-          yh[x][14] = g_inf-(g_inf-yh[x][14])*exp(-DT/tau_g);
-          //yhdot[x][14]=(g_inf - yh[x][14])/tau_g;
-        }
-        //ICaT, dCaT gate//////////////////////////////////////////////////// 
-        dCaT_inf = 1/(1+exp(-(yh[x][0]+26.3)/(6)));
-        tau_dCaT = 1/(1.068*exp((yh[x][0]+26.3)/(30))+1.068*exp(-(yh[x][0]+26.3)/(30)));
-        yh[x][15] = dCaT_inf-(dCaT_inf-yh[x][15])*exp(-DT/tau_dCaT);
-        //yhdot[x][15] = (dCaT_inf - yh[x][15])/tau_dCaT;
-        //ICaT, fCaT gate//////////////////////////////////////////////////// 
-        fCaT_inf = 1/(1+exp((yh[x][0]+61.7)/(5.6)));
-        tau_fCaT = 1/(0.0153*exp(-(yh[x][0]+61.7)/(83.3))+ 0.015*exp((yh[x][0]+61.7)/(15.38)));
-        yh[x][16]= fCaT_inf-(fCaT_inf-yh[x][16])*exp(-DT/tau_fCaT);
-        //yhdot[x][16] = (fCaT_inf - yh[x][16])/tau_fCaT;
-        //If, Xf gate////////////////////////////////////////////////////////
-        tau_xf = 1900;//ms
-        xf_inf = 1/(1+exp((yh[x][0]-(-102.4))/(7.6)));
-        yh[x][17]= xf_inf-(xf_inf- yh[x][17])*exp(-DT/tau_xf);
-        //yhdot[x][17] = (xf_inf - yh[x][17])/tau_xf;
-        //IK1, alphas and betas////////////////////////////////////////////// 
-        alpha_K1 = 0.1/(1+exp(0.06*((yh[x][0]-myShiftK1)-Ek-200)));
-        beta_K1 = (3*exp(0.0002*((yh[x][0]-myShiftK1)-Ek+100))+exp(0.1*((yh[x][0]-myShiftK1)-Ek-10)))/(1+exp(-0.5*((yh[x][0]-myShiftK1)-Ek)));
-        x_K1_inf = alpha_K1/(alpha_K1+beta_K1);
+        alpha_K1_fib = 0.1  / (1 + exp(0.06  * (yf[x][0] - EK_fib - 200.)));
+        beta_K1_fib = (3.  * exp(0.0002 * (yf[x][0] - EK_fib + 100. )) + 1  * exp(0.1 * (yf[x][0] - EK_fib - 10. ))) / (1  + exp(-(0.5 ) * (yf[x][0] - EK_fib)));
+        IK1_fib= GK1_fib * alpha_K1_fib / (alpha_K1_fib + beta_K1_fib) * (yf[x][0] - EK_fib);
 
-        //Na+ current, INa 
-        INa = Gnamax*yh[x][3]*yh[x][3]*yh[x][3]*yh[x][4]*yh[x][5]*(yh[x][0]-Ena);
+        IKv_fib = GKv * yf[x][1] * yf[x][2] * (yf[x][0] - EK_fib);
 
-        //L-type Ca2+ current, ICaL 
-        ICaL = GCaL*yh[x][11]*yh[x][12]*yh[x][13]*4*yh[x][0]*(F*F)/R/T*(yh[x][1]*exp(2*yh[x][0]*F/R/T)-0.341*Cao)/(exp(2*yh[x][0]*F/R/T)-1);
+        INaK_fib = Max_INaK * Ko / (KmK_fib + Ko) * pow(Nai_fib, 1.5) / (pow(KmNa_fib, 1.5 ) + pow(Nai_fib, 1.5 )) * (yf[x][0] + 150. ) / (yf[x][0] + 200. );
 
-        //Transient outward current, Ito 
-        Ito = GItoepi*yh[x][9]*yh[x][10]*(yh[x][0]-Ek);
-
-        //Rapid delayed rectifier K+ current, IKr 
-        IKr = GKr*yh[x][6]*yh[x][7]*(yh[x][0]-Ek);
-
-        //Slow delayed rectifier K+ current, IKs, added a scaling factor (1+0.6/(1+pow((3.8e-5/yh[x][1]),1.4))
-        IKs = GKsepi*(1+.6/pow((1+(3.8e-5/yh[x][1])),1.4))*yh[x][8]*yh[x][8]*(yh[x][0]-Eks);
-
-        //Inward rectifier K+ current, IK1
-        IK1=x_K1_inf*gK1max*(yh[x][0]-Ek);
-
-        //Na+/Ca2+ exchanger current, INaCa, not than n represents lambda 
-        INaCa = knaca*(1/(KmNai_hesc*KmNai_hesc*KmNai_hesc+Nao_naca*Nao_naca*Nao_naca))*(1/(KmCa+Cao))*(1/(1+ksat_hesc*exp((n-1)*yh[x][0]*F/(R*T))))*(exp(n*yh[x][0]*F/(R*T))*Nai*Nai*Nai*Cao-exp((n-1)*yh[x][0]*F/(R*T))*Nao_naca*Nao_naca*Nao_naca*yh[x][1]*alfa);
-
-        //Na+/K+ pump current, INaK, note that code uses knak variable for pnak
-        INaK = (1/(1+0.1245*exp(-0.1*yh[x][0]*F/(R*T))+0.0353*exp(-yh[x][0]*F/(R*T))))*(knak*Ko/(Ko+KmK)*Nai/(Nai+KmNa));
-
-        //Calcium pump current, IpCa 
-        IpCa = GpCa*yh[x][1]/(kpca+yh[x][1]);
-
-        //Plateau K+ current 
-        IpK = GpK*(yh[x][0]-Ek)*(1/(1+exp((25-yh[x][0])/5.98)));
-
-        //Background sodium current 
-        IbNa = GbNa*(yh[x][0]-Ena);
-
-        //Calcium background current, IbCa 
-        IbCa = GbCa*(yh[x][0]-Eca);
-
-        //Currents added for the hESC_CM model
-        ////Hyperpolarization activated funny current, If
-        If = Gf*yh[x][17]*(yh[x][0]+17);
-
-        //T-type Ca2+ Current, ICaT, not originally in the tentusscher model 
-        ICaT = yh[x][15]*yh[x][16]*GICaT*(yh[x][0]-Eca);
+        IbNa_fib = GbNa_fib * (yf[x][0] - ENa_fib);
 
         // Current injection
         if ( (( count <= stim_dur_int)&& (stim_fib[x] == 1))&& (num> stim_equil)) {
-          Istim = -stim_mag;
-          //   cout <<"Stimulate hESC"<<endl;
+          I_stim_fib = -stim_mag;
         }
         else {
-          Istim = 0.0;
+          I_stim_fib = 0.0;
 
         }
 
-        Itotal = INa + ICaL + Ito + IKr + IKs + IK1 + INaCa + INaK + IpCa + IbNa + IpK + IbCa + If + ICaT + Istim;
 
-        Ileak = Vleak*(yh[x][2]-yh[x][1]);
-        Iup = Vmaxup/(1.+((Kup*Kup)/(yh[x][1]*yh[x][1])));
+        Itotal_fib = IKv_fib + IK1_fib + INaK_fib + IbNa_fib + I_stim_fib;
 
-        //modified by RaIrel
-        Irel = (yh[x][11]*yh[x][14]*(crel+arel*(yh[x][2]*yh[x][2])/((brel*brel)+(yh[x][2]*yh[x][2]))))*RaIrel;
 
-        CaBuf = Bufc*yh[x][1]/(yh[x][1]+Kbufc);
-        CaCSQN = Bufsr*yh[x][2]/(yh[x][2]+Kbufsr);
-        CaSRCurrent = Iup-Irel-Ileak;
+        //update gates
+        r_inf_fib = 1. / (1. + exp(-((yf[x][0]  + 20. )) / 11. ));
+        tau_r_fib = 20.3  + 138.  * exp(-(pow((yf[x][0]  + 20.) / 25.9, 2 )));
+        yfdot[x][1] = (r_inf_fib - yf[x][1])/tau_r_fib;
+        //r_gate_fib = r_inf_fib - (r_inf_fib - r) * exp(-DT / tau_r_fib);
 
-        //Added ICaT to CaCurrent
-        CaCurrent = -(ICaL+IbCa+ICaT+IpCa-2.0*INaCa)*(1.0/(2.0*Vc*F))*capacitance;
+        s_inf_fib = 1./(1. + exp ((yf[x][0]  + 23.0) / 7.0));
+        tau_s_fib = 1574. + 5268. * exp(-(pow((yf[x][0]  + 23. ) / 22.7, 2 )));
+        //s_gate_fib = s_inf_fib - (s_inf_fib - s) * exp(-DT / tau_s_fib);
+        yfdot[x][2] = (s_inf_fib - yf[x][2])/tau_s_fib;
 
-        //dCaSR = DT*(Vc/Vsr)*CaSRCurrent;
-        yhdot[x][2] = (Vc/Vsr_hesc)*CaSRCurrent;
-        bjsr = Bufsr-CaCSQN-yhdot[x][2]-yh[x][2]+Kbufsr;
-        cjsr = Kbufsr*(CaCSQN+yhdot[x][2]+yh[x][2]);
-        yh[x][2] = (sqrt(bjsr*bjsr+4*cjsr)-bjsr)/2;
 
-        //dCai = DT*(CaCurrent-CaSRCurrent);
-        yhdot[x][1] = (CaCurrent-CaSRCurrent);
-        bc = Bufc-CaBuf-yhdot[x][1]-yh[x][1]+Kbufc;
-        cc = Kbufc*(CaBuf+yhdot[x][1]+yh[x][1]);
-        yh[x][1] = (sqrt(bc*bc+4*cc)-bc)/2;
-
-        yhdot[x][0] = -Itotal;
-
-        //Update gates not calculated using rush-larsen method
-        yh[x][0] = yh[x][0] + DT * yhdot[x][0];
-        yh[x][1] = yh[x][1] + DT * yhdot[x][1];
-        yh[x][2] = yh[x][2] + DT * yhdot[x][2];
+        yfdot[x][0] = (-Itotal_fib);
 
         //Update membrane potential and gates
-        // for (int cc=0; cc<18; cc++) yh[x][cc] = yh[x][cc] + DT * yhdot[x][cc];
+        for (int cc=0; cc<3; cc++) yf[x][cc] = yf[x][cc] + DT * yfdot[x][cc];
 
-        if(count%file_filter==0) fprintf(output2,"%.12f\t",yh[x][0]);
+        if(count%file_filter==0) fprintf(output2,"%.12f\t",yf[x][0]);
+
       } //end of cell loop fibroblast
-      // for (int bb=0; bb<18; bb++) printf("yh[node][%d] = %.12f;\n",bb,yh[0][bb]);
+      // for (int bb=0; bb<18; bb++) printf("yf[node][%d] = %.12f;\n",bb,yf[0][bb]);
       ////////////////////////////////////////////////////////////////////////////////////////////
       ////END OF CELL LOOP
       // for (int cc=35; cc<=41; cc++) fprintf(output,"%.12f\t",y[x][cc]);
       if(count%file_filter==0) fprintf(output2,"\n");
       //cout <<"Done with cell loops"<<endl;
 
-      PDE(y, yh, neighbors_myo, DynamicGapON);
+      PDE(y, yf, neighbors_myo, DynamicGapON);
       //cout << "I out function: " << ydot[0][0] << endl;
       //cout<<"first pde"<<endl;
 
-      PDE(y, yh, neighbors_fib, DynamicGapON);
+      PDE(y, yf, neighbors_fib, DynamicGapON);
       //cout<<"second pde"<<endl;
 
       //Calculate Conduction Velocity/////////////////////////////////////////////////////////////
@@ -1388,25 +905,25 @@ int main(){
         if (y[abs(CVL_1)][0] >= -40 &&  V_myo[abs(CVL_1)]<-40) CVstart = time;
         if (y[abs(CVL_2)][0] >= -40 &&  V_myo[abs(CVL_2)]<-40){
           cout <<"Longitudinal CV = " <<((CVL_cell2 - CVL_cell1)* 25e-4)/(time - CVstart)*1000 << endl;
-          
+
         }
       }
       if ((CVL_1 > 0) && (CVL_2 < 0)){
         if (y[abs(CVL_1)][0] >= -40 &&  V_myo[abs(CVL_1)]<-40) CVstart = time;
-        if (yh[abs(CVL_2)][0] >= -40 &&  V_fib[abs(CVL_2)]<-40){
+        if (yf[abs(CVL_2)][0] >= -40 &&  V_fib[abs(CVL_2)]<-40){
           cout <<"Longitudinal CV = " <<((CVL_cell2 - CVL_cell1)* 25e-4)/(time - CVstart)*1000 << endl;
-          
+
         }
       }
       if ((CVL_1 < 0) && (CVL_2 > 0)){
-        if (yh[abs(CVL_1)][0] >= -40 &&  V_fib[abs(CVL_1)]<-40) CVstart = time;
+        if (yf[abs(CVL_1)][0] >= -40 &&  V_fib[abs(CVL_1)]<-40) CVstart = time;
         if (y[abs(CVL_2)][0] >= -40 &&  V_myo[abs(CVL_2)]<-40){
           cout <<"Longitudinal CV = " <<((CVL_cell2 - CVL_cell1)* 25e-4)/(time - CVstart)*1000 << endl;
         }
       }
       if ((CVL_1 < 0) && (CVL_2 < 0)){
-        if (yh[abs(CVL_1)][0] >= -40 &&  V_fib[abs(CVL_1)]<-40) CVstart = time;
-        if (yh[abs(CVL_2)][0] >= -40 &&  V_fib[abs(CVL_2)]<-40){
+        if (yf[abs(CVL_1)][0] >= -40 &&  V_fib[abs(CVL_1)]<-40) CVstart = time;
+        if (yf[abs(CVL_2)][0] >= -40 &&  V_fib[abs(CVL_2)]<-40){
           cout <<"Longitudinal CV = " <<((CVL_cell2 - CVL_cell1)* 25e-4)/(time - CVstart)*1000 << endl;
         }
       }
@@ -1423,10 +940,10 @@ int main(){
 
       //Stores previous voltage values for myocyte and fibroblast
       for (int aa=0; aa<CELLS_myo; aa++) {V_myo[aa] = y[aa][0];}
-      for (int dd=0; dd<CELLS_fib; dd++) {V_fib[dd] = yh[dd][0];}
+      for (int dd=0; dd<CELLS_fib; dd++) {V_fib[dd] = yf[dd][0];}
 
-     // cout<< "Calculate conduction velocity" << endl;
-    
+      // cout<< "Calculate conduction velocity" << endl;
+
       //Calculate Conduction Velocity/////////////////////////////////////////////////////////////
 
 
@@ -1435,7 +952,7 @@ int main(){
 
   }// end of stimulation loop
   for (int bb=0; bb<42; bb++) printf("y[node][%d] = %.12f;\n",bb,y[0][bb]);
-  for (int bb=0; bb<18; bb++) printf("yh[node][%d] = %.12f;\n",bb,yh[0][bb]);
+  for (int bb=0; bb<18; bb++) printf("yf[node][%d] = %.12f;\n",bb,yf[0][bb]);
 
   fclose(output);
   fclose(output2);
@@ -1557,6 +1074,252 @@ double dyngap(double VJ, cx_model cx_choice){
   }
   return (g_res + ((g_max - g_res)/(1 + exp(A1 * (-VJ - V1)) + exp(A2 * (VJ - V2)))));//Contingent gating model
 
+}
+double dyngap1(double VJ, cx_model cx_choice){
+  double alpha_1, alpha_2, alpha_3, alpha_4, beta_1, beta_2, beta_3, beta_4;
+  double V_LL1, V_LL2, V_LH1, V_LH2, V_HL1, V_HL2, V_HH1, V_HH2, Vj;
+  double n_HH0 = .5;
+  double n_LH0 = .25;
+  double n_HL0 = .25;
+  double n_LL0 = 0;
+  double g_1, g_2, delta_g_1, delta_g_2, R_1, R_2, A, B, C, D, determinant, V_1, V_2, gamma_1, gamma_2;
+  double g_HH, g_LH, g_HL, g_LL;
+  double g_junction, R_junction, I_junction;
+  double tolerance = 0.001;
+  double t = 0.0;
+  int N_channels;
+
+  double V_H, V_L, gamma_H, gamma_L, alpha_coef, beta_coef, V_alpha, V_beta;
+  double V_H2, V_L2, gamma_H2, gamma_L2, alpha_coef2, beta_coef2, V_alpha2, V_beta2;
+
+  // double VJ;
+  //cout << VJ << endl;
+  //  VJ = Vright - Vleft;
+  switch (cx_choice){//Opposing gates model of gap junctions by Chen-Izu
+    case 0:
+       N_channels=13;
+      //Parameters for homotypic Cx43 gap junction model
+      V_H= 145.9;
+      V_L= 299;
+      gamma_H= 146.6;
+      gamma_L= 13.1;
+      alpha_coef= 181.5e-3;
+      beta_coef= 0.007e-3;
+      V_alpha= 8.437;
+      V_beta= 8.675;
+
+      V_H2= 145.9; //units mV*/
+      V_L2= 299;
+      gamma_H2= 146.6;
+      gamma_L2= 13.1;
+      alpha_coef2= 181.5e-3 //units ms
+        beta_coef2= 0.007e-3
+        V_alpha2= 8.437
+        V_beta2= 8.675
+        break;
+    case 1://Cell on the left is Cx43, cell on the right is Cx45
+      N_channels=13;
+      V_H= 55.9;
+      V_L= 299;
+      gamma_H= 126.6;
+      gamma_L= 13.1;
+      alpha_coef= 181.5e-3;
+      beta_coef= 0.007e-3;
+      V_alpha= 8.437;
+      V_beta= 8.675;
+
+      V_H2= 615; //units mV*/
+      V_L2= 299;
+      gamma_H2= 75;
+      gamma_L2= 4;
+      alpha_coef2= 181.5e-3; //units ms
+      beta_coef2= 0.007e-3;
+      V_alpha2= 2.437;
+      V_beta2= 6.675;
+      break;
+    case 2://Parameters for homotypic Cx45 gap junciton model
+      N_channels=13;
+      V_H=  113.86;
+      V_L= 345.23;
+      gamma_H= 57;
+      gamma_L= 4;
+      alpha_coef=  0.2468;
+      beta_coef= 0.000469;
+      V_alpha= 4.6867;
+      V_beta= 75.9036;
+
+      V_H2=  113.86;
+      V_L2= 345.23;
+      gamma_H2= 57;
+      gamma_L2= 4;
+      alpha_coef2=  0.2468;
+      beta_coef2= 0.000469;
+      V_alpha2= 4.6867;
+      V_beta2= 75.9036;
+      break;
+    default: 
+      break;
+  }
+  // Procedure for calculating g_LL
+
+  g_1 = 10.0;													// Initial guess for g_1
+  g_2 = 10.0;													// Initial guess for g_2
+
+  V_1 = V_L;													// State of hemichannel 1
+  V_2 = V_L2;													// State of hemichannel 2
+  gamma_1 = gamma_L;
+  gamma_2 = gamma_L2;
+
+  R_1 = gamma_1*exp((Vj/V_1)*(g_2/(g_1+g_2)))-g_1;								// Residual equation 1
+  R_2 = gamma_2*exp(-(Vj/V_2)*(g_1/(g_1+g_2)))-g_2;								// Residual equation 2
+
+  while ( fabs(R_1) > tolerance || fabs(R_2) > tolerance )
+  {
+    A = -((gamma_1*Vj*g_2/(V_1*(g_1+g_2)*(g_1+g_2)))*exp((Vj/V_1)*(g_2/(g_1+g_2))))-1.0;			// Partial derivative of equation 1 wrt g_1
+    B = (gamma_1*Vj*g_1/(V_1*(g_1+g_2)*(g_1+g_2)))*exp((Vj/V_1)*(g_2/(g_1+g_2)));				// Partial derivative of equation 1 wrt g_2
+    C = -(gamma_2*Vj*g_2/(V_2*(g_1+g_2)*(g_1+g_2)))*exp(-(Vj/V_2)*(g_1/(g_1+g_2)));				// Partial derivative of equation 2 wrt g_1
+    D = ((gamma_2*Vj*g_1/(V_2*(g_1+g_2)*(g_1+g_2)))*exp(-(Vj/V_2)*(g_1/(g_1+g_2))))-1.0;			// Partial derivative of equation 2 wrt g_2
+
+    determinant = A*D-B*C;											// Determinant
+    delta_g_1 = (1.0/determinant)*(D*(-R_1)-B*(-R_2));							// Change in g_1
+    delta_g_2 = (1.0/determinant)*(-C*(-R_1)+A*(-R_2));							// Change in g_2
+
+    g_1 = g_1+delta_g_1;											// Updated value of g_1
+    g_2 = g_2+delta_g_2;											// Updated value of g_2
+
+    R_1 = gamma_1*exp((Vj/V_1)*(g_2/(g_1+g_2)))-g_1;							// Residual for equation 1
+    R_2 = gamma_2*exp(-(Vj/V_2)*(g_1/(g_1+g_2)))-g_2;							// Residual for equation 2
+  }
+
+  g_LL = (g_1*g_2)/(g_1+g_2);											// Junction conductance in the LL state
+  V_LL1 = -Vj*(g_2/(g_1+g_2));											// Voltage drop across the first hemichannel
+  V_LL2 = Vj*(g_1/(g_1+g_2));											// Voltage drop across the second hemichannel
+
+
+  // Procedure for calculating g_LH
+
+  g_1 = 10.0;
+  g_2 = 10.0;
+
+  V_1 = V_L;
+  V_2 = V_H2;
+  gamma_1 = gamma_L;
+  gamma_2 = gamma_H2;
+
+  R_1 = gamma_1*exp((Vj/V_1)*(g_2/(g_1+g_2)))-g_1;
+  R_2 = gamma_2*exp(-(Vj/V_2)*(g_1/(g_1+g_2)))-g_2;
+
+  while ( fabs(R_1) > tolerance || fabs(R_2) > tolerance )
+  {
+    A = -((gamma_1*Vj*g_2/(V_1*(g_1+g_2)*(g_1+g_2)))*exp((Vj/V_1)*(g_2/(g_1+g_2))))-1.0;
+    B = (gamma_1*Vj*g_1/(V_1*(g_1+g_2)*(g_1+g_2)))*exp((Vj/V_1)*(g_2/(g_1+g_2)));
+    C = -(gamma_2*Vj*g_2/(V_2*(g_1+g_2)*(g_1+g_2)))*exp(-(Vj/V_2)*(g_1/(g_1+g_2)));
+    D = ((gamma_2*Vj*g_1/(V_2*(g_1+g_2)*(g_1+g_2)))*exp(-(Vj/V_2)*(g_1/(g_1+g_2))))-1.0;
+
+    determinant = A*D-B*C;
+    delta_g_1 = (1.0/determinant)*(D*(-R_1)-B*(-R_2));
+    delta_g_2 = (1.0/determinant)*(-C*(-R_1)+A*(-R_2));
+
+    g_1 = g_1+delta_g_1;
+    g_2 = g_2+delta_g_2;
+
+    R_1 = gamma_1*exp((Vj/V_1)*(g_2/(g_1+g_2)))-g_1;
+    R_2 = gamma_2*exp(-(Vj/V_2)*(g_1/(g_1+g_2)))-g_2;
+  }
+
+  g_LH = (g_1*g_2)/(g_1+g_2);
+  V_LH1 = -Vj*(g_2/(g_1+g_2));
+  V_LH2 = Vj*(g_1/(g_1+g_2));
+
+
+  // Procedure for calculating g_HL
+
+  g_1 = 10.0;
+  g_2 = 50.0;
+
+  V_1 = V_H;
+  V_2 = V_L2;
+  gamma_1 = gamma_H;
+  gamma_2 = gamma_L2;
+
+  R_1 = gamma_1*exp((Vj/V_1)*(g_2/(g_1+g_2)))-g_1;
+  R_2 = gamma_2*exp(-(Vj/V_2)*(g_1/(g_1+g_2)))-g_2;
+
+  while ( fabs(R_1) > tolerance || fabs(R_2) > tolerance )
+  {
+    A = -((gamma_1*Vj*g_2/(V_1*(g_1+g_2)*(g_1+g_2)))*exp((Vj/V_1)*(g_2/(g_1+g_2))))-1.0;
+    B = (gamma_1*Vj*g_1/(V_1*(g_1+g_2)*(g_1+g_2)))*exp((Vj/V_1)*(g_2/(g_1+g_2)));
+    C = -(gamma_2*Vj*g_2/(V_2*(g_1+g_2)*(g_1+g_2)))*exp(-(Vj/V_2)*(g_1/(g_1+g_2)));
+    D = ((gamma_2*Vj*g_1/(V_2*(g_1+g_2)*(g_1+g_2)))*exp(-(Vj/V_2)*(g_1/(g_1+g_2))))-1.0;
+
+    determinant = A*D-B*C;
+    delta_g_1 = (1.0/determinant)*(D*(-R_1)-B*(-R_2));
+    delta_g_2 = (1.0/determinant)*(-C*(-R_1)+A*(-R_2));
+
+    g_1 = g_1+delta_g_1;
+    g_2 = g_2+delta_g_2;
+
+    R_1 = gamma_1*exp((Vj/V_1)*(g_2/(g_1+g_2)))-g_1;
+    R_2 = gamma_2*exp(-(Vj/V_2)*(g_1/(g_1+g_2)))-g_2;
+  }
+
+  g_HL = (g_1*g_2)/(g_1+g_2);
+  V_HL1 = -Vj*(g_2/(g_1+g_2));
+  V_HL2 = Vj*(g_1/(g_1+g_2));
+
+
+  // Procedure for calculating g_HH
+
+  g_1 = 10.0;
+  g_2 = 10.0;
+
+  V_1 = V_H;
+  V_2 = V_H2;
+  gamma_1 = gamma_H;
+  gamma_2 = gamma_H2;
+
+  R_1 = gamma_1*exp((Vj/V_1)*(g_2/(g_1+g_2)))-g_1;
+  R_2 = gamma_2*exp(-(Vj/V_2)*(g_1/(g_1+g_2)))-g_2;
+
+  while ( fabs(R_1) > tolerance || fabs(R_2) > tolerance )
+  {
+    A = -((gamma_1*Vj*g_2/(V_1*(g_1+g_2)*(g_1+g_2)))*exp((Vj/V_1)*(g_2/(g_1+g_2))))-1.0;
+    B = (gamma_1*Vj*g_1/(V_1*(g_1+g_2)*(g_1+g_2)))*exp((Vj/V_1)*(g_2/(g_1+g_2)));
+    C = -(gamma_2*Vj*g_2/(V_2*(g_1+g_2)*(g_1+g_2)))*exp(-(Vj/V_2)*(g_1/(g_1+g_2)));
+    D = ((gamma_2*Vj*g_1/(V_2*(g_1+g_2)*(g_1+g_2)))*exp(-(Vj/V_2)*(g_1/(g_1+g_2))))-1.0;
+
+    determinant = A*D-B*C;
+    delta_g_1 = (1.0/determinant)*(D*(-R_1)-B*(-R_2));
+    delta_g_2 = (1.0/determinant)*(-C*(-R_1)+A*(-R_2));
+
+    g_1 = g_1+delta_g_1;
+    g_2 = g_2+delta_g_2;
+
+    R_1 = gamma_1*exp((Vj/V_1)*(g_2/(g_1+g_2)))-g_1;
+    R_2 = gamma_2*exp(-(Vj/V_2)*(g_1/(g_1+g_2)))-g_2;
+  }
+
+  g_HH = (g_1*g_2)/(g_1+g_2);
+  V_HH1 = -Vj*(g_2/(g_1+g_2));
+  V_HH2 = Vj*(g_1/(g_1+g_2));
+
+
+  alpha_1 = 2.0*alpha_coef/(1.0+exp(-V_LH1/V_alpha));
+  alpha_2 = 2.0*alpha_coef2/(1.0+exp(-V_HL2/V_alpha2));
+  alpha_3 = 2.0*alpha_coef/(1.0+exp(-V_LL1/V_alpha));
+  alpha_4 = 2.0*alpha_coef2/(1.0+exp(-V_LL2/V_alpha2));
+
+  beta_1 = beta_coef*exp(-V_HH1/V_beta);
+  beta_2 = beta_coef2*exp(-V_HH2/V_beta2);
+  beta_3 = beta_coef*exp(-V_HL1/V_beta);
+  beta_4 = beta_coef2*exp(-V_LH2/V_beta2);
+
+  n_LL = n_LL+DT*(beta_4*n_LH+beta_3*n_HL-(alpha_3+alpha_4)*n_LL);
+  n_LH = n_LH+DT*(beta_1*n_HH-(alpha_1+beta_4)*n_LH+alpha_4*n_LL);
+  n_HL = n_HL+DT*(beta_2*n_HH-(alpha_2+beta_3)*n_HL+alpha_3*n_LL);
+  n_HH = n_HH+DT*(-(beta_1+beta_2)*n_HH+alpha_1*n_LH+alpha_2*n_HL);
+
+  return N_channels*(n_LL*g_LL+n_LH*g_LH+n_HL*g_HL+n_HH*g_HH)*pow(10.0,-3);	//units nanoSiemens
 }
 double dyngap2(double VJ, cx_model cx_choice){
   //State variables
