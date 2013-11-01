@@ -21,7 +21,7 @@
 using namespace std;
 int length_myo = 5;
 int length_fib = 1;
-const int NROWS = 100, NCOLS = 100;
+const int NROWS = 25, NCOLS = 25;
 int grid[NROWS][NCOLS]={0};
 bool grid_toggle = true;
 

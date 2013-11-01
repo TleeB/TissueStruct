@@ -41,8 +41,8 @@ xlim([0.5,nX+.5])
 ylim([0.5,nY+.5])
 
 %%
-myo = importdata('testGrandi.dat');
-fib = importdata('testGrandi2.dat');
+myo = importdata('testGrandi3.dat');
+fib = importdata('testGrandi4.dat');
 
 [rows, cols]=size(grid_values);
 full_file=zeros(length(myo),1);
@@ -94,7 +94,7 @@ end
 %winopen('myPeaks1.avi')
 %% creates AVI movie
 figure(3)
-writerObj = VideoWriter('2013_08_16_25by25grid_5stim_500bcl_2s_equil_3d_4by4stim_Cm_scale.mp2');
+writerObj = VideoWriter('2013_09_6_25by25grid_5stim_500bcl_1s_equil_4by4stim_Cm_scale_dynamic_hetero_2D', 'MPEG-4');
 writerObj.FrameRate = 20;
 open(writerObj);
 
@@ -111,7 +111,7 @@ mov(1:nFrames) = struct('cdata',[], 'colormap',[]);
 for k=1:nFrames
     surf(reshape(full_file(k,:), cols,rows)')%,'LineStyle','none');
     shading(gca,'interp');
-    %view(0,90);
+    view(0,90);
     A = getframe;
     writeVideo(writerObj, A);
     

@@ -23,7 +23,7 @@
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_roots.h>
 #include <gsl/gsl_errno.h>
-
+//must add flags -I /opt/local/include
 using namespace std;
 
 
@@ -33,16 +33,16 @@ const double HF = 0; //To simulate the heart failure model use HF=1
 const bool DynamicGapON = true;
 
 //Global stimulation parameters
-int num_stim=2;
+int num_stim=5;
 int stim_equil = 1;
 int file_filter = 1000;
 double stim_mag=19.5;
 double stim_dur=3;
-int stim_col_max=2, stim_row_max=2;
+int stim_col_max=5, stim_row_max=5;
 double bcl=500;
 double DT = 0.005;
-char output_file_name[30] = "testGrandi.dat";
-char output_file_name2[30] = "testGrandi2.dat";
+char output_file_name[30] = "testGrandi3.dat";
+char output_file_name2[30] = "testGrandi4.dat";
 char output_file_name3[30] = "params.dat";
 //char output_file_name4[30] = "voltage.dat";
 
@@ -81,9 +81,9 @@ enum cx_model{
 //Function for dynamic gap junctions
 double dyngap(double, cx_model);
 //Function for dynamic gap junctions
-double dyngap2(double, cx_model);
+double dyngap1(double, cx_model);
 //Function for dynamic gap junctions
-double dyngap1(double, cx_model)
+double dyngap2(double, cx_model);
 
   struct voltage_params{
     double G1H, G2H, G1L, G2L, V1H, V2H, V1L, V2L, VJ;
@@ -453,8 +453,8 @@ int main(){
   //----------------------------------------------------------------------------------------------------
   vector< vector< double > > y(CELLS_myo, vector< double >( 42 ) );
   vector< vector< double > > ydot(CELLS_myo, vector< double >( 42 ) );
-  vector< vector< double > > yf(CELLS_fib, vector< double >( 18 ) );
-  vector< vector< double > > yfdot(CELLS_fib, vector< double >( 18 ) );
+  vector< vector< double > > yf(CELLS_fib, vector< double >( 3 ) );
+  vector< vector< double > > yfdot(CELLS_fib, vector< double >( 3 ) );
   //cout << "vectors loaded"<<endl;
 
   //Initialize myocyte variables
@@ -952,7 +952,8 @@ int main(){
 
   }// end of stimulation loop
   for (int bb=0; bb<42; bb++) printf("y[node][%d] = %.12f;\n",bb,y[0][bb]);
-  for (int bb=0; bb<18; bb++) printf("yf[node][%d] = %.12f;\n",bb,yf[0][bb]);
+
+  //for (int gg=0; gg<3; gg++) printf("yf[node][%d] = %.12f;\n",gg,yf[0][gg]);
 
   fclose(output);
   fclose(output2);
@@ -980,13 +981,13 @@ void PDE( vector< vector<double> >  &Vmyo, vector< vector<double> > &Vfib, vecto
             G = .02; //200 nS converted to uS for the currents
           }
           Vj = (Vmyo[ abs(neighbor[p][N])-1][0] - Vmyo[p][0]);//Neighbor minus 1 to get the right vector index?
-          if(dynamicGapOn){G = G * dyngap2(Vj, CX43CX43);}
+          if(dynamicGapOn){G = G * dyngap1(Vj, CX43CX43);}
         }
         else{ //If neighbor is a fibroblast
           //G = 8e-3;
           Vj = (Vfib[ abs(neighbor[p][N])-1][0] - Vmyo[p][0]);//Neighbor minus 1 to get the right vector index?
           G = 0.0008;
-          if(dynamicGapOn){ G = G * dyngap2(Vj, CX43CX43);}//This is a Cx43Cx45 channel
+          if(dynamicGapOn){ G = G * dyngap1(Vj, CX43CX45);}//This is a Cx43Cx45 channel
         }
         sum_myo += G * Vj;//current in units of uA.
       }
@@ -994,12 +995,12 @@ void PDE( vector< vector<double> >  &Vmyo, vector< vector<double> > &Vfib, vecto
         if(neighbor[p][N] > 0){ //If neighbor is a myocyte
           Vj = (Vmyo[ abs(neighbor[p][N])-1][0] - Vfib[p][0]);//Neighbor minus 1 to get the right vector index?
           G = 0.0008; 
-          if(dynamicGapOn){G = G * dyngap2(-Vj, CX43CX43);}//This is a Cx45Cx43 channel so just switch sign of Vj in the Cx43Cx45 model
+          if(dynamicGapOn){G = G * dyngap1(-Vj, CX43CX45);}//This is a Cx45Cx43 channel so just switch sign of Vj in the Cx43Cx45 model
         }
         else{//If neighbor is fibroblast
           Vj = (Vfib[ abs(neighbor[p][N])-1][0] - Vfib[p][0]);//Neighbor minus 1 to get the right vector index?
           G = 0.0008;
-          if(dynamicGapOn){G = G * dyngap2(Vj, CX45CX45);}//This is a Cx45Cx45 channel
+          if(dynamicGapOn){G = G * dyngap1(Vj, CX45CX45);}//This is a Cx45Cx45 channel
         }
         sum_fib += G * Vj;//current in units of pA
       }
@@ -1078,10 +1079,10 @@ double dyngap(double VJ, cx_model cx_choice){
 double dyngap1(double VJ, cx_model cx_choice){
   double alpha_1, alpha_2, alpha_3, alpha_4, beta_1, beta_2, beta_3, beta_4;
   double V_LL1, V_LL2, V_LH1, V_LH2, V_HL1, V_HL2, V_HH1, V_HH2, Vj;
-  double n_HH0 = .5;
-  double n_LH0 = .25;
-  double n_HL0 = .25;
-  double n_LL0 = 0;
+  double n_HH = .5;
+  double n_LH = .25;
+  double n_HL = .25;
+  double n_LL = 0;
   double g_1, g_2, delta_g_1, delta_g_2, R_1, R_2, A, B, C, D, determinant, V_1, V_2, gamma_1, gamma_2;
   double g_HH, g_LH, g_HL, g_LL;
   double g_junction, R_junction, I_junction;
@@ -1097,7 +1098,8 @@ double dyngap1(double VJ, cx_model cx_choice){
   //  VJ = Vright - Vleft;
   switch (cx_choice){//Opposing gates model of gap junctions by Chen-Izu
     case 0:
-       N_channels=13;
+      //Gj_inst = 0.0733
+      N_channels=13;//13.643 floored
       //Parameters for homotypic Cx43 gap junction model
       V_H= 145.9;
       V_L= 299;
@@ -1112,13 +1114,14 @@ double dyngap1(double VJ, cx_model cx_choice){
       V_L2= 299;
       gamma_H2= 146.6;
       gamma_L2= 13.1;
-      alpha_coef2= 181.5e-3 //units ms
-        beta_coef2= 0.007e-3
-        V_alpha2= 8.437
-        V_beta2= 8.675
+      alpha_coef2= 181.5e-3; //units ms
+        beta_coef2= 0.007e-3;
+        V_alpha2= 8.437;
+        V_beta2= 8.675;
         break;
     case 1://Cell on the left is Cx43, cell on the right is Cx45
-      N_channels=13;
+      //Gj_inst = 0.0471
+      N_channels=21;//should be 21.23
       V_H= 55.9;
       V_L= 299;
       gamma_H= 126.6;
@@ -1138,7 +1141,8 @@ double dyngap1(double VJ, cx_model cx_choice){
       V_beta2= 6.675;
       break;
     case 2://Parameters for homotypic Cx45 gap junciton model
-      N_channels=13;
+      //Gj_inst = 0.0284
+      N_channels=35;//should be 35.211
       V_H=  113.86;
       V_L= 345.23;
       gamma_H= 57;
@@ -1345,7 +1349,6 @@ double dyngap2(double VJ, cx_model cx_choice){
   switch (cx_choice){
     case 0:
       //Parameters for homotypic Cx43 gap junction model
-
       //voltage across the channels units: mV
       V1H = 145.9;
       V2H = 145.9;
